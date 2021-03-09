@@ -55,7 +55,7 @@ metapca <- function(fits, ncomp=2, weights=NULL, combine=c("pca", "scaled","MFA"
 
 
 
-  nvars <- sapply(fits, function(x) shape(x)[2])
+  nvars <- sapply(fits, function(x) shape(x)[1])
   tot <- sum(nvars)
 
   outer_block_indices <- b_ind(nvars)
@@ -102,6 +102,7 @@ partial_project.metapca <- function(x, new_data, colind, ...) {
 
 #' @export
 project.metapca <- function(x, new_data) {
+  #browser()
   assert_that(ncol(new_data) == sum(sapply(x$fits, function(f) shape(f)[1])))
   x0 <- do.call(cbind, lapply(1:length(x$outer_block_indices), function(i) {
     ind <- x$outer_block_indices[[i]]

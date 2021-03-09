@@ -1,0 +1,31 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# subpca
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+The goal of subpca is to provide a way of computing pca within sub-blocks and then a second ("metapca") over each cluster-wise pca.
+
+## Installation
+
+
+You can install the development version from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("bbuchsbaum/subpca")
+```

@@ -37,6 +37,11 @@ subpca <- function(X, clus,
     assertthat::assert_that(length(ccomp) == ngroups)
   }
 
+  if (sum(ccomp) < ncomp) {
+    warning("fewer cluster components than final components.")
+
+  }
+
   if (!is.null(weights)) {
     assert_that(length(weights) == length(groups))
     assert_that(all(weights > 0))
@@ -76,8 +81,17 @@ subpca <- function(X, clus,
 
   final_fit <- metapca(fits, ncomp=ncomp, combine=combine)
   attr(final_fit, "class") <- c("subpca", attr(final_fit, "class"))
+  attr(final_fit, "nclus") <- ngroups
+  final_fit
   #sc <- scores(final_fit)
   #lds <- t(X) %*% sc
 
+}
+
+print.subpca <- function(x) {
+  cat("subpca: ", paste0(class(x)), "\n")
+  cat("number of clusters: ", attr(x, "nclus"), "\n")
+  cat("input dim: ", nrow(x$v), "\n")
+  cat("output dim: ", ncol(x$v), "\n")
 }
 
