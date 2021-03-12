@@ -1,13 +1,23 @@
-#' subpca
+#' PCA on sublocks or clusters followed again by PCA
+#'
+#' sub-block PCA
+#'
 #'
 #' @param X the data matrix
 #' @param clus the cluster index vector
-#' @param ncomp the number of components to extract from each block (can vary by block or be fixed)
+#' @param nomp the number of final "meta" components.
+#' @param ccomp the number of components to extract from each block (can vary by block or be fixed, see details).
 #' @param preproc the preprocessor
 #' @param combine how method to combine cluster-wise PCAs.
-#' @param extra args
+#' @param ... extra args sent to `metapca`
 #' @importFrom furrr future_map
 #' @importFrom assertthat assert_that
+#'
+#' @details
+#'
+#' the `ccomp` argument can either be a scalar integer, a fractional value less than 1,
+#' a `vector` with the same length as the number of clusters, or a function taking a `pca` object
+#' and returning an `integer`.
 #'
 #' @examples
 #'
@@ -16,6 +26,16 @@
 #' ncomp=10
 #'
 #' pres <- subpca(X, clus, ncomp=5)
+#'
+#' f <- function(p) {
+#'   svar <- cumsum(sdev(p))
+#'   v <- svar/svar[length(svar)]
+#'   min(which(v > .8))
+#' }
+#'
+#' pres <- subxpca(X, clus, ncomp=5, ccomp=f)
+#' pres <- subpca(X, clus, ncomp=5, ccomp=.5)
+#' @export
 subpca <- function(X, clus,
                       weights=NULL,
                       ncomp=2,
@@ -31,63 +51,15 @@ subpca <- function(X, clus,
   ngroups <- length(unique(clus))
   groups <- sort(unique(clus))
 
-  if (length(ccomp) == 1) {
-    ccomp <- rep(ccomp, ngroups)
-  } else {
-    assertthat::assert_that(length(ccomp) == ngroups)
-  }
-
-  if (sum(ccomp) < ncomp) {
-    warning("fewer cluster components than final components.")
-
-  }
-
-  if (!is.null(weights)) {
-    assert_that(length(weights) == length(groups))
-    assert_that(all(weights > 0))
-    weights <- weights/sum(weights)
-  } else {
-    weights <- rep(1, ngroups)
-  }
-
-  proc <- prep(preproc)
-  X <- init_transform(proc, X)
-
-  sind <- split(1:ncol(X), clus)
-  gsize <- sapply(sind, length)
-
-  fits <- furrr::future_map(1:length(sind), function(i) {
-      xb <- X[,sind[[i]]]
-      pp <- multivarious::fresh(preproc)
-      multivarious::pca(xb, ncomp=ccomp[i], preproc=pp)
-  })
-
-  # scmat <- do.call(cbind, furrr::future_map(fits, function(fit) {
-  #   if (combine == "pca" || combine == "MFA") {
-  #     multivarious::scores(fit)
-  #   } else {
-  #     fit$u
-  #   }
-  # }))
-  #
-  # A <- if (combine == "MFA") {
-  #   sapply(1:length(fits), function(i) 1/sdev(fits[[i]])[1] * weights[i])
-  # } else {
-  #   weights
-  # }
-  #
-  # A <- rep(A, sapply(fits, function(fit) ncomp(fit)))
-  # final_fit <- genpca::genpca(scmat, A, preproc = pass())
-
-  final_fit <- metapca(fits, ncomp=ncomp, combine=combine)
+  fits <- cluster_pca(X, clus=clus, weights=weights, ccomp=ccomp, preproc=preproc)
+  outer_block_indices <- split(1:ncol(X), clus)
+  final_fit <- metapca(fits, ncomp=ncomp, combine=combine, outer_block_indices=outer_block_indices, ...)
   attr(final_fit, "class") <- c("subpca", attr(final_fit, "class"))
   attr(final_fit, "nclus") <- ngroups
   final_fit
-  #sc <- scores(final_fit)
-  #lds <- t(X) %*% sc
-
 }
 
+#' @export
 print.subpca <- function(x) {
   cat("subpca: ", paste0(class(x)), "\n")
   cat("number of clusters: ", attr(x, "nclus"), "\n")

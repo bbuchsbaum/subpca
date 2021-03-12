@@ -2,7 +2,7 @@
 % Please edit documentation in R/subpca.R
 \name{subpca}
 \alias{subpca}
-\title{subpca}
+\title{PCA on sublocks or clusters followed again by PCA}
 \usage{
 subpca(
   X,
@@ -20,16 +20,23 @@ subpca(
 
 \item{clus}{the cluster index vector}
 
-\item{ncomp}{the number of components to extract from each block (can vary by block or be fixed)}
+\item{ccomp}{the number of components to extract from each block (can vary by block or be fixed, see details).}
 
 \item{combine}{how method to combine cluster-wise PCAs.}
 
 \item{preproc}{the preprocessor}
 
-\item{extra}{args}
+\item{...}{extra args sent to \code{metapca}}
+
+\item{nomp}{the number of final "meta" components.}
 }
 \description{
-subpca
+sub-block PCA
+}
+\details{
+the \code{ccomp} argument can either be a scalar integer, a fractional value less than 1,
+a \code{vector} with the same length as the number of clusters, or a function taking a \code{pca} object
+and returning an \code{integer}.
 }
 \examples{
 
@@ -38,4 +45,13 @@ clus <- rep(1:10, each=10)
 ncomp=10
 
 pres <- subpca(X, clus, ncomp=5)
+
+f <- function(p) {
+  svar <- cumsum(sdev(p))
+  v <- svar/svar[length(svar)]
+  min(which(v > .8))
+}
+
+pres <- subxpca(X, clus, ncomp=5, ccomp=f)
+pres <- subpca(X, clus, ncomp=5, ccomp=.5)
 }

@@ -20,9 +20,10 @@
 #' fits <- list(pc1,pc2,pc3)
 #' pfit <- metapca(fits, ncomp=15)
 #' ncol(scores(pfit)) == 10
+#' truncate(pfit,2)
 #' @export
 #' @import assertthat
-metapca <- function(fits, ncomp=2, weights=NULL, combine=c("pca", "scaled","MFA")) {
+metapca <- function(fits, ncomp=2, weights=NULL, combine=c("pca", "scaled","MFA"), outer_block_indices=NULL) {
   assert_that(all(sapply(fits,function(f) inherits(f, "bi_projector"))))
 
   combine <- match.arg(combine)
@@ -53,14 +54,17 @@ metapca <- function(fits, ncomp=2, weights=NULL, combine=c("pca", "scaled","MFA"
     })
   }
 
-
-
   nvars <- sapply(fits, function(x) shape(x)[1])
   tot <- sum(nvars)
 
-  outer_block_indices <- b_ind(nvars)
-  inner_block_indices <- b_ind(nc)
+  if (is.null(outer_block_indices)) {
+    outer_block_indices <- b_ind(nvars)
+  } else {
+    vcount <- sapply(outer_block_indices, length)
+    assert_that(all(nvars == vcount), "`outer_block_indices` does not correpsond to input shape of `fits`")
+  }
 
+  inner_block_indices <- b_ind(nc)
 
   v <- do.call(rbind, lapply(1:length(fits), function(i) {
       coef(fits[[i]]) %*% coef(pres)[inner_block_indices[[i]],]
@@ -115,8 +119,21 @@ project.metapca <- function(x, new_data) {
 }
 
 #' @export
-reconstruct.metapca <- function(x, comp, rowind=1:nrow(scores(x)), colind=1:nrow(coefficients(x))) {
+truncate.metapca <- function(x, ncomp) {
+  ret <- bi_projector(
+    v=coef(x)[,1:ncomp,drop=FALSE],
+    s=scores(x)[,1:ncomp,drop=FALSE],
+    sdev=sdev(x)[1:ncomp],
+    metafit=truncate(x$metafit, ncomp),
+    fits=x$fits,
+    outer_block_indices=x$outer_block_indices,
+    inner_block_indices=x$inner_block_indices,
+    classes=c("metapca", "pca"))
+}
 
+#' @export
+reconstruct.metapca <- function(x, comp, rowind=1:nrow(scores(x)), colind=1:nrow(coefficients(x))) {
+  stop("unimplemented")
   recon <- reconstruct(x$metafit, comp=comp)
 
 

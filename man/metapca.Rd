@@ -4,7 +4,13 @@
 \alias{metapca}
 \title{PCA of PCAs}
 \usage{
-metapca(fits, ncomp = 2, weights = NULL, combine = c("pca", "scaled", "MFA"))
+metapca(
+  fits,
+  ncomp = 2,
+  weights = NULL,
+  combine = c("pca", "scaled", "MFA"),
+  outer_block_indices = NULL
+)
 }
 \arguments{
 \item{fits}{a list of fitted component models of type \code{bi_projector}}
@@ -25,7 +31,8 @@ pc3 <- pca(X3, ncomp=10, preproc=center())
 
 fits <- list(pc1,pc2,pc3)
 pfit <- metapca(fits, ncomp=15)
-ncol(scores(pfit)) == 10}
+ncol(scores(pfit)) == 10
+truncate(pfit,2)}
 }
 \description{
 metapca computes a principal components analysis over several pca fits

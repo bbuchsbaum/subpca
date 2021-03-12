@@ -19,3 +19,8 @@ multivarious::partial_project
 #' @rdname reconstruct
 multivarious::reconstruct
 
+#' @importFrom multivarious truncate
+#' @export
+#' @rdname truncate
+multivarious::truncate
+
