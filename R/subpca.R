@@ -51,9 +51,14 @@ subpca <- function(X, clus,
   ngroups <- length(unique(clus))
   groups <- sort(unique(clus))
 
-  fits <- cluster_pca(X, clus=clus, weights=weights, ccomp=ccomp, preproc=preproc)
+  if (!is.null(weights)) {
+    assert_that(length(weights) == ngroups)
+  }
+
+
+  fits <- cluster_pca(X, clus=clus, ccomp=ccomp, preproc=preproc)
   outer_block_indices <- split(1:ncol(X), clus)
-  final_fit <- metapca(fits, ncomp=ncomp, combine=combine, outer_block_indices=outer_block_indices, ...)
+  final_fit <- metapca(fits, ncomp=ncomp, combine=combine, weights=weights, outer_block_indices=outer_block_indices, ...)
   attr(final_fit, "class") <- c("subpca", attr(final_fit, "class"))
   attr(final_fit, "nclus") <- ngroups
   final_fit

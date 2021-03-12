@@ -41,7 +41,7 @@ metapca <- function(fits, ncomp=2, weights=NULL, combine=c("pca", "scaled","MFA"
     wts <- (1/sqrt(matrixStats::colSds(X))) * weights
     genpca::genpca(unclass(X), A=wts, ncomp=ncomp, preproc=pass())
   } else if (combine == "MFA") {
-    wts <- rep(sapply(fits, function(x) sdev(x)[1]), nc) * weights
+    wts <- rep(sapply(fits, function(x) 1/sdev(x)[1]), nc) * weights
     genpca::genpca(X, A=wts, ncomp=ncomp, preproc=pass())
   } else {
     genpca::genpca(X, A=weights, ncomp=ncomp, preproc=pass())

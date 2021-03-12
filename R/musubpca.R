@@ -47,7 +47,6 @@ musubpca <- function(X,
     ccomp <- function(fit) {
       svar <- cumsum(sdev(fit))
       v <- svar/svar[length(svar)]
-      print(min(which(v > perc)))
       min(which(v > perc))
     }
   }
@@ -57,12 +56,10 @@ musubpca <- function(X,
     cluster_pca(x, clus, ccomp=inner_ccomp, preproc=fresh(preproc))
   })
 
-  #browser()
 
   ## for each cluster, run a metapca
   nfits <- length(out)
 
-  #browser()
   fits2 <- furrr::future_map(1:nfits, function(i) {
     fs <- lapply(out, function(x) x[[i]])
     pres <- if (is.function(ccomp)) {
@@ -77,9 +74,7 @@ musubpca <- function(X,
     ##...
   })
 
-
-
-  pres <- metapca(fits2, ncomp=ncomp, combine=combine)
+  pres <- metapca(fits2, ncomp=ncomp, weights=weights, combine=combine)
 
 }
 

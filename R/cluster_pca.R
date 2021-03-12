@@ -1,5 +1,4 @@
 cluster_pca <- function(X, clus,
-                  weights=NULL,
                   ccomp=2,
                   preproc=center()) {
 
@@ -9,13 +8,6 @@ cluster_pca <- function(X, clus,
   ngroups <- length(unique(clus))
   groups <- sort(unique(clus))
 
-  if (!is.null(weights)) {
-    assert_that(length(weights) == length(groups))
-    assert_that(all(weights > 0))
-    weights <- weights/sum(weights)
-  } else {
-    weights <- rep(1, ngroups)
-  }
 
   if (!is.function(ccomp)) {
     if (any(ccomp <= 0)) {
