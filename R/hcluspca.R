@@ -74,6 +74,7 @@ hcluspca <- function(X, hclus, cuts,
     fits <- vector(nlevs, mode="list")
     fits[[1]] <- fit0
     fi <- 1
+    proc <- fit0$preproc
   } else {
     ## skip outer fit
     proc <- prep(preproc)
@@ -95,7 +96,7 @@ hcluspca <- function(X, hclus, cuts,
   v <- do.call(cbind, lapply(fits,coef))
   s <- do.call(cbind, lapply(fits, scores))
 
-  bi_projector(v,s, sdev=unlist(lapply(fits,sdev)), preproc=fit0$preproc, classes="hcluspca",
+  bi_projector(v,s, sdev=unlist(lapply(fits,sdev)), preproc=proc, classes="hcluspca",
                cuts=cuts, levels=length(cuts), hclus=hclus, spat_smooth=spat_smooth, cds=cds,
                ccomp=ccomp,
                svd_method=svd_method)
