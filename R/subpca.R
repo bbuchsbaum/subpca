@@ -1,6 +1,9 @@
+
+#' sub-block PCA
+#'
+#'
 #' PCA on sublocks or clusters followed again by PCA
 #'
-#' sub-block PCA
 #'
 #'
 #' @param X the data matrix
@@ -33,7 +36,7 @@
 #'   min(which(v > .8))
 #' }
 #'
-#' pres <- subxpca(X, clus, ncomp=5, ccomp=f)
+#' pres <- subpca(X, clus, ncomp=5, ccomp=f)
 #' pres <- subpca(X, clus, ncomp=5, ccomp=.5)
 #' @export
 subpca <- function(X, clus,
@@ -56,7 +59,7 @@ subpca <- function(X, clus,
   }
 
 
-  fits <- cluster_pca(X, clus=clus, ccomp=ccomp, preproc=preproc)
+  fits <- clusterpca(X, clus=clus, ccomp=ccomp, preproc=preproc)
   outer_block_indices <- split(1:ncol(X), clus)
   final_fit <- metapca(fits, ncomp=ncomp, combine=combine, weights=weights, outer_block_indices=outer_block_indices, ...)
   attr(final_fit, "class") <- c("subpca", attr(final_fit, "class"))

@@ -2,7 +2,7 @@
 % Please edit documentation in R/subpca.R
 \name{subpca}
 \alias{subpca}
-\title{PCA on sublocks or clusters followed again by PCA}
+\title{sub-block PCA}
 \usage{
 subpca(
   X,
@@ -31,7 +31,7 @@ subpca(
 \item{nomp}{the number of final "meta" components.}
 }
 \description{
-sub-block PCA
+PCA on sublocks or clusters followed again by PCA
 }
 \details{
 the \code{ccomp} argument can either be a scalar integer, a fractional value less than 1,
@@ -52,6 +52,6 @@ f <- function(p) {
   min(which(v > .8))
 }
 
-pres <- subxpca(X, clus, ncomp=5, ccomp=f)
+pres <- subpca(X, clus, ncomp=5, ccomp=f)
 pres <- subpca(X, clus, ncomp=5, ccomp=.5)
 }

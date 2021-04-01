@@ -24,3 +24,20 @@ multivarious::reconstruct
 #' @rdname truncate
 multivarious::truncate
 
+#' @importFrom multivarious residuals
+#' @export
+#' @rdname residuals
+multivarious::residuals
+
+#' @importFrom multivarious ncomp
+#' @export
+#' @rdname ncomp
+multivarious::ncomp
+
+#' @importFrom multivarious scores
+#' @export
+#' @rdname scores
+multivarious::scores
+
+
+

@@ -61,7 +61,7 @@ metapca <- function(fits, ncomp=2, weights=NULL, combine=c("pca", "scaled","MFA"
     outer_block_indices <- b_ind(nvars)
   } else {
     vcount <- sapply(outer_block_indices, length)
-    assert_that(all(nvars == vcount), "`outer_block_indices` does not correpsond to input shape of `fits`")
+    assert_that(all(nvars == vcount), msg="`outer_block_indices` does not correpsond to input shape of `fits`")
   }
 
   inner_block_indices <- b_ind(nc)
