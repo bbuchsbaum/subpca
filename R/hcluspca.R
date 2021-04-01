@@ -51,6 +51,7 @@ hcluspca <- function(X, hclus, cuts,
 
   pfun <- function(X, ncomp, preproc, ind) {
     if (est_method == "standard") {
+      message("fitting pca, method", svd_method, " ncomp = ", ncomp)
       pca(X, ncomp=ncomp, preproc=preproc, method=svd_method)
     } else if (est_method == "smooth") {
       coord <- cds[ind,]
@@ -66,7 +67,6 @@ hcluspca <- function(X, hclus, cuts,
   if (!skip_global) {
     ## outer fit
     fit0 <- pfun(X, ccomp[[1]], preproc, 1:nrow(X))
-
 
     Xresid0 <- residuals(fit0, ncomp=multivarious::ncomp(fit0), xorig=X)
     Xresid <- Xresid0
@@ -87,8 +87,10 @@ hcluspca <- function(X, hclus, cuts,
     #print(i)
     message("residuals for level", i, " = ", sum(Xresid^2))
     kind <- dendextend::cutree(hclus, cuts[i])
+    message('fitting clusterpca, level ', i)
     ## no intercept...
     fit <- clusterpca(Xresid,clus = kind, ccomp=ccomp[[fi+i]], preproc=pass(), colwise=FALSE, pcafun=pfun)
+    message('computing residuals, level ', i)
     Xresid <- residuals.clusterpca(fit, ncomp=ncomp(fit),xorig=Xresid)
     fits[[fi+i]] <- fit
   }
