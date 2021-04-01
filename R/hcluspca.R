@@ -15,6 +15,7 @@
 #' cuts <- c(4, 8, 16)
 #' hclus <- dclust::dclust(grid, nstart=10)
 #' hres1 <- hcluspca(X, hclus, cuts, est_method="standard", ccomp=c(4,1,1,1))
+#' hres2 <- hcluspca(X, hclus, cuts, skip_global=TRUE, est_method="standard", ccomp=c(1,1,1))
 #' ncomp(hres1) == (sum(cuts) +4)
 #'
 #' @importFrom dendextend cutree
@@ -22,7 +23,8 @@
 #' @export
 hcluspca <- function(X, hclus, cuts,
                              est_method=c("standard","smooth"),
-                             ccomp=rep(1, length(cuts)),
+                             skip_global=FALSE,
+                             ccomp=1,
                              spat_smooth=rep(0, length(cuts)+1),
                              cds=NULL,
                              intercept=FALSE,
@@ -34,11 +36,17 @@ hcluspca <- function(X, hclus, cuts,
   #preproc <- pre_processor(X, center=center, scale=scale)
   #Xp <- pre_process(preproc, X)
 
-  nlevs <- length(cuts) + 1
+  nlevs <- if (skip_global) length(cuts) else length(cuts) + 1
+
+
+  if (!is.function(ccomp) && length(ccomp) == 1) {
+    ccomp <- rep(ccomp, nlevs)
+  }
+
   assertthat::assert_that(all(cuts > 1), msg="all `cuts` must be greater than 1")
 
-  if (!is.function(ccomp) && ccomp != nlevs) {
-    stop("if `ccomp` is a vector it must have an entry for very level (number of cuts + 1)")
+  if (!is.function(ccomp) && length(ccomp) != nlevs) {
+    stop("if `ccomp` is a vector it must have an entry for every level, including the global level if skip_global=FALSE")
   }
 
   pfun <- function(X, ncomp, preproc, ind) {
@@ -55,24 +63,33 @@ hcluspca <- function(X, hclus, cuts,
 
   }
 
-  ## outer fit
-  fit0 <- pfun(X, ccomp[[1]], preproc, 1:nrow(X))
+  if (!skip_global) {
+    ## outer fit
+    fit0 <- pfun(X, ccomp[[1]], preproc, 1:nrow(X))
 
 
-  Xresid0 <- residuals(fit0, ncomp=multivarious::ncomp(fit0), xorig=X)
-  Xresid <- Xresid0
+    Xresid0 <- residuals(fit0, ncomp=multivarious::ncomp(fit0), xorig=X)
+    Xresid <- Xresid0
 
-  fits <- vector(nlevs, mode="list")
-  fits[[1]] <- fit0
+    fits <- vector(nlevs, mode="list")
+    fits[[1]] <- fit0
+    fi <- 1
+  } else {
+    ## skip outer fit
+    proc <- prep(preproc)
+    Xresid0 <- init_transform(proc, X)
+    Xresid <- Xresid0
+    fi <- 0
+  }
 
   for (i in 1:length(cuts)) {
     #print(i)
     message("residuals for level", i, " = ", sum(Xresid^2))
     kind <- dendextend::cutree(hclus, cuts[i])
     ## no intercept...
-    fit <- clusterpca(Xresid,clus = kind, ccomp=ccomp[[i+1]], preproc=pass(), colwise=FALSE, pcafun=pfun)
+    fit <- clusterpca(Xresid,clus = kind, ccomp=ccomp[[fi+i]], preproc=pass(), colwise=FALSE, pcafun=pfun)
     Xresid <- residuals.clusterpca(fit, ncomp=ncomp(fit),xorig=Xresid)
-    fits[[i+1]] <- fit
+    fits[[fi+i]] <- fit
   }
 
   v <- do.call(cbind, lapply(fits,coef))
