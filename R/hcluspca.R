@@ -16,6 +16,11 @@
 #' hclus <- dclust::dclust(grid, nstart=10)
 #' hres1 <- hcluspca(X, hclus, cuts, est_method="standard", ccomp=c(4,1,1,1))
 #' hres2 <- hcluspca(X, hclus, cuts, skip_global=TRUE, est_method="standard", ccomp=c(1,1,1))
+#'
+#' f <- function(fit,i) {  max(1, round(log(shape(fit)[1]))) }
+#' hres3 <- hcluspca(X, hclus, cuts, skip_global=TRUE, est_method="standard", ccomp=f)
+#'
+#'
 #' ncomp(hres1) == (sum(cuts) +4)
 #'
 #' @importFrom dendextend cutree
@@ -39,6 +44,10 @@ hcluspca <- function(X, hclus, cuts,
   nlevs <- if (skip_global) length(cuts) else length(cuts) + 1
 
 
+  if (is.function(ccomp) && length(ccomp) == 1) {
+    ccomp <- lapply(1:nlevs, function(i) ccomp)
+  }
+
   if (!is.function(ccomp) && length(ccomp) == 1) {
     ccomp <- rep(ccomp, nlevs)
   }
@@ -51,7 +60,7 @@ hcluspca <- function(X, hclus, cuts,
 
   pfun <- function(X, ncomp, preproc, ind) {
     if (est_method == "standard") {
-      message("fitting pca, method", svd_method, " ncomp = ", ncomp)
+      message("fitting pca, method ", svd_method, " ncomp = ", ncomp)
       pca(X, ncomp=ncomp, preproc=preproc, method=svd_method)
     } else if (est_method == "smooth") {
       coord <- cds[ind,]
@@ -64,6 +73,8 @@ hcluspca <- function(X, hclus, cuts,
 
   }
 
+  fits <- vector(nlevs, mode="list")
+
   if (!skip_global) {
     ## outer fit
     fit0 <- pfun(X, ccomp[[1]], preproc, 1:nrow(X))
@@ -71,7 +82,6 @@ hcluspca <- function(X, hclus, cuts,
     Xresid0 <- residuals(fit0, ncomp=multivarious::ncomp(fit0), xorig=X)
     Xresid <- Xresid0
 
-    fits <- vector(nlevs, mode="list")
     fits[[1]] <- fit0
     fi <- 1
     proc <- fit0$preproc
