@@ -106,8 +106,16 @@ clusterpca <- function(X, clus,
     truncpca(fit0, ccomp,i)
   })
 
+  nc <- sapply(fits,ncomp)
+  cunc <- c(0, cumsum(nc))
+
+  comp_indices <- lapply(1:(length(cunc)-1), function(i) {
+    seq(cunc[i]+1,cunc[i+1])
+  })
+
   ret <- list(fits=fits,
-              ncomp=sapply(fits,ncomp),
+              ncomp=nc,
+              comp_indices=comp_indices,
               preproc=proc,
               groups=groups,
               clus=clus,
