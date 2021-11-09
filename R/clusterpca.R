@@ -4,6 +4,7 @@ truncpca <- function(fit, ccomp, i) {
     n <- ccomp(fit,i)
     multivarious::truncate(fit, n)
   } else if (multivarious::ncomp(fit) != ccomp[i]) {
+    nc <- min(ccomp[i], ncomp(fit))
     truncate(fit, ccomp[i])
   } else {
     fit

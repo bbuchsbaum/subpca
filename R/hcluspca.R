@@ -133,6 +133,7 @@ hcluspca <- function(X, hclus, cuts,
 
 
     message('computing residuals, level ', i)
+
     Xresid <- residuals.clusterpca(fit, ncomp=ncomp(fit),xorig=Xresid)
     fits[[fi+i]] <- fit
 
