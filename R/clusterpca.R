@@ -29,6 +29,10 @@ truncpca <- function(fit, ccomp, i) {
 #' pres <- clusterpca(X, clus, ccomp=5, colwise=TRUE)
 #' cf <- coef(pres)
 #'
+#' X <- matrix(rnorm(10*100), 10, 100)
+#' clus <- rep(1:10, each=10)
+#' pres2 <- clusterpca(X, clus, ccomp=3, preproc=center(), colwise=TRUE)
+#'
 #' X <- matrix(rnorm(200*100), 200, 100)
 #' clus <- rep(1:10, each=20)
 #' pres <- clusterpca(X, clus, ccomp=5, colwise=FALSE)
@@ -99,12 +103,16 @@ clusterpca <- function(X, clus,
 
   gsize <- sapply(sind, length)
 
-  fits <- furrr::future_map(1:length(sind), function(i) {
+  Xs <- purrr::map(1:length(sind), function(i) {
     xb <- if (colwise) X[,sind[[i]],drop=FALSE] else X[sind[[i]],,drop=FALSE]
-    pp <- multivarious::fresh(preproc)
     nc <- if (is.function(ccomp)) min(dim(xb)) else ccomp[i]
-    fit0 <- pcafun(xb, ncomp=nc, preproc=pp, sind[[i]])
-    truncpca(fit0, ccomp,i)
+    list(xb=xb, nc=nc, sind=sind[[i]], i=i)
+  })
+
+  fits <- furrr::future_map(Xs, function(xs) {
+    pp <- multivarious::fresh(preproc)
+    fit0 <- pcafun(xs$xb, ncomp=xs$nc, preproc=pp, xs$sind)
+    truncpca(fit0, ccomp,xs$i)
   })
 
   nc <- sapply(fits,ncomp)
