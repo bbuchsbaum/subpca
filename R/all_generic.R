@@ -39,5 +39,10 @@ multivarious::ncomp
 #' @rdname scores
 multivarious::scores
 
+#' @importFrom multivarious components
+#' @export
+#' @rdname components
+multivarious::components
+
 
 

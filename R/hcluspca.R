@@ -34,7 +34,6 @@
 #' ncomp(hres1) == (sum(cuts) +4)
 #'
 #' @importFrom dendextend cutree
-#' @import dclust
 #' @export
 hcluspca <- function(X, hclus, cuts,
                              est_method=c("standard","smooth"),
@@ -70,8 +69,16 @@ hcluspca <- function(X, hclus, cuts,
 
   pfun <- function(X, ncomp, preproc, ind) {
     if (est_method == "standard") {
-      message("fitting pca, method ", svd_method, " ncomp = ", ncomp)
-      pca(X, ncomp=ncomp, preproc=preproc, method=svd_method)
+      # If ncomp is a function, we need to fit with max components first, then truncate
+      if (is.function(ncomp)) {
+        message("fitting pca, method ", svd_method, " ncomp = function")
+        fit0 <- pca(X, ncomp=min(dim(X)), preproc=preproc, method=svd_method)
+        nc <- ncomp(fit0)
+        truncate(fit0, nc)
+      } else {
+        message("fitting pca, method ", svd_method, " ncomp = ", ncomp)
+        pca(X, ncomp=ncomp, preproc=preproc, method=svd_method)
+      }
     } else if (est_method == "smooth") {
       coord <- cds[ind,]
       S <- spatial_constraints(cds[ind,,drop=FALSE], sigma_within=spat_smooth[level])
@@ -117,7 +124,7 @@ hcluspca <- function(X, hclus, cuts,
     if (orthogonalize && !is.null(S)) {
       sind <- split(1:length(kind), kind)
       for (j in 1:length(sind)) {
-        Z <- S[sind[[j]],]
+        Z <- S[sind[[j]],,drop=FALSE]
         keep <- which(Z[1,] != 0)
         Z <- Z[,keep]
         Y <- Xresid[sind[[j]],]
@@ -134,7 +141,7 @@ hcluspca <- function(X, hclus, cuts,
 
     message('computing residuals, level ', i)
 
-    Xresid <- residuals.clusterpca(fit, ncomp=ncomp(fit),xorig=Xresid)
+    Xresid <- residuals.clusterpca(fit, ncomp=fit$ncomp, xorig=Xresid)
     fits[[fi+i]] <- fit
 
     if (is.null(S)) {
@@ -147,7 +154,7 @@ hcluspca <- function(X, hclus, cuts,
   }
 
 
-  v <- do.call(cbind, lapply(fits,coef))
+  v <- do.call(cbind, lapply(fits, multivarious::components))
   s <- lapply(fits, scores)
 
 
@@ -176,7 +183,7 @@ hcluspca <- function(X, hclus, cuts,
   #   }
   # }
 
-  s <- do.call(cbind, s)
+  s <- as.matrix(do.call(cbind, s))
 
   bi_projector(v,s, sdev=unlist(lapply(fits,sdev)), preproc=proc, classes="hcluspca",
                cuts=cuts, levels=length(cuts), hclus=hclus, spat_smooth=spat_smooth, cds=cds,

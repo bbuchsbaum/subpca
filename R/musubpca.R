@@ -11,6 +11,7 @@
 #' clus <- rep(1:5, length.out=50)
 #' ret <- musubpca(X,clus)
 #' ret <- musubpca(X,clus, inner_ccomp=.5, ccomp=.5)
+#' @export
 musubpca <- function(X,
                     clus,
                     weights=NULL,
@@ -26,7 +27,9 @@ musubpca <- function(X,
   inner_combine <- match.arg(inner_combine)
   combine <- match.arg(combine)
 
-  if (is_cstacked(X)) {
+  # Column-stacked: observations x variables, cluster the variables (columns)
+  # Row-stacked: variables x observations, need to transpose for column-wise clustering
+  if (!is_cstacked(X)) {
     X <- t(X)
   }
 
@@ -45,23 +48,23 @@ musubpca <- function(X,
   if (ccomp[1] < 1) {
     perc <- ccomp[1]
     ccomp <- function(fit) {
-      svar <- cumsum(sdev(fit))
-      v <- svar/svar[length(svar)]
+      ev <- sdev(fit)^2
+      v <- cumsum(ev) / sum(ev)
       min(which(v > perc))
     }
   }
 
   ## for each block run a cluster_pca
   out <- furrr::future_map(X, function(x) {
-    cluster_pca(x, clus, ccomp=inner_ccomp, preproc=fresh(preproc))
-  })
+    clusterpca(x, clus, ccomp=inner_ccomp, preproc=multivarious::fresh(preproc))
+  }, .options = furrr::furrr_options(packages = c("multivarious", "subpca")))
 
 
   ## for each cluster, run a metapca
   nfits <- length(out)
 
-  fits2 <- furrr::future_map(1:nfits, function(i) {
-    fs <- lapply(out, function(x) x[[i]])
+  fits2 <- furrr::future_map(1:ngroups, function(i) {
+    fs <- lapply(out, function(x) x$fits[[i]])
     pres <- if (is.function(ccomp)) {
       nc <- sum(sapply(fs, function(f) shape(f)[2]))
       fit0 <- metapca(fs, ncomp=nc, combine=inner_combine)
@@ -72,7 +75,7 @@ musubpca <- function(X,
       metapca(fs, ncomp=ccomp[i], combine=inner_combine)
     }
     ##...
-  })
+  }, .options = furrr::furrr_options(packages = c("multivarious", "subpca")))
 
   pres <- metapca(fits2, ncomp=ncomp, weights=weights, combine=combine)
 

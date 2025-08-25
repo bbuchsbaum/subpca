@@ -9,11 +9,13 @@ hcluspca(
   hclus,
   cuts,
   est_method = c("standard", "smooth"),
-  ccomp = rep(1, length(cuts)),
+  skip_global = FALSE,
+  ccomp = 1,
   spat_smooth = rep(0, length(cuts) + 1),
   cds = NULL,
   intercept = FALSE,
   svd_method = c("fast", "base", "irlba", "propack", "rsvd", "svds"),
+  orthogonalize = FALSE,
   preproc = center()
 )
 }
@@ -29,13 +31,19 @@ A multiscale PCA that defines sub-scales using a provided hierarchical clusterin
 }
 \examples{
 
-grid <- expand.grid(1:10, 1:10)
+grid <- expand.grid(1:20, 1:10)
 
 ## 100 images each with 50 features
-X <- matrix(rnorm(100*50), 100, 50)
+X <- matrix(rnorm(200*100), 200, 100)
 cuts <- c(4, 8, 16)
 hclus <- dclust::dclust(grid, nstart=10)
-hres1 <- hcluspca(X, hclus, cuts, est_method="standard", ccomp=c(4,1,1,1))
+hres1 <- hcluspca(X, hclus, cuts, est_method="standard", ccomp=c(4,2,2,2))
+hres2 <- hcluspca(X, hclus, cuts, skip_global=TRUE, est_method="standard", ccomp=c(1,1,1))
+
+f <- function(fit,i) {  max(1, round(log(shape(fit)[1]))) }
+hres3 <- hcluspca(X, hclus, cuts, skip_global=TRUE, est_method="standard", ccomp=f)
+
+
 ncomp(hres1) == (sum(cuts) +4)
 
 }

@@ -31,8 +31,8 @@
 #' pres <- subpca(X, clus, ncomp=5)
 #'
 #' f <- function(p) {
-#'   svar <- cumsum(sdev(p))
-#'   v <- svar/svar[length(svar)]
+#'   ev <- sdev(p)^2
+#'   v <- cumsum(ev) / sum(ev)
 #'   min(which(v > .8))
 #' }
 #'
@@ -59,9 +59,9 @@ subpca <- function(X, clus,
   }
 
 
-  fits <- clusterpca(X, clus=clus, ccomp=ccomp, preproc=preproc)
+  cfit <- clusterpca(X, clus=clus, ccomp=ccomp, preproc=preproc)
   outer_block_indices <- split(1:ncol(X), clus)
-  final_fit <- metapca(fits, ncomp=ncomp, combine=combine, weights=weights, outer_block_indices=outer_block_indices, ...)
+  final_fit <- metapca(cfit$fits, ncomp=ncomp, combine=combine, weights=weights, outer_block_indices=outer_block_indices, ...)
   attr(final_fit, "class") <- c("subpca", attr(final_fit, "class"))
   attr(final_fit, "nclus") <- ngroups
   final_fit
@@ -73,5 +73,10 @@ print.subpca <- function(x) {
   cat("number of clusters: ", attr(x, "nclus"), "\n")
   cat("input dim: ", nrow(x$v), "\n")
   cat("output dim: ", ncol(x$v), "\n")
+}
+
+#' @export
+components.subpca <- function(x, ...) {
+  x$v
 }
 

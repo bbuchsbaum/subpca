@@ -1,7 +1,5 @@
-library(multivarious)
-library(assertthat)
-#library(subpca)
-devtools::load_all()
+# Tests are run with the package already loaded by testthat
+# No need to explicitly load libraries here
 
 test_that("can run a metapca analysis", {
   X1 <- matrix(rnorm(20*10), 20, 10)

@@ -47,8 +47,8 @@ ncomp=10
 pres <- subpca(X, clus, ncomp=5)
 
 f <- function(p) {
-  svar <- cumsum(sdev(p))
-  v <- svar/svar[length(svar)]
+  ev <- sdev(p)^2
+  v <- cumsum(ev) / sum(ev)
   min(which(v > .8))
 }
 

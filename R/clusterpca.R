@@ -1,7 +1,12 @@
 
 truncpca <- function(fit, ccomp, i) {
   if (is.function(ccomp)) {
-    n <- ccomp(fit,i)
+    # Check function signature - if it accepts 2 args, pass both, else just fit
+    n <- if (length(formals(ccomp)) == 2) {
+      ccomp(fit, i)
+    } else {
+      ccomp(fit)
+    }
     multivarious::truncate(fit, n)
   } else if (multivarious::ncomp(fit) != ccomp[i]) {
     nc <- min(ccomp[i], ncomp(fit))
@@ -85,8 +90,8 @@ clusterpca <- function(X, clus,
     if (ccomp[1] < 1) {
       perc <- ccomp
       ccomp <- function(fit, i) {
-        svar <- cumsum(sdev(fit))
-        v <- svar/svar[length(svar)]
+        ev <- sdev(fit)^2
+        v <- cumsum(ev) / sum(ev)
         min(which(v > perc[i]))
       }
     }
@@ -112,8 +117,8 @@ clusterpca <- function(X, clus,
   fits <- furrr::future_map(Xs, function(xs) {
     pp <- multivarious::fresh(preproc)
     fit0 <- pcafun(xs$xb, ncomp=xs$nc, preproc=pp, xs$sind)
-    truncpca(fit0, ccomp,xs$i)
-  })
+    truncpca(fit0, ccomp, xs$i)
+  }, .options = furrr::furrr_options(packages = c("multivarious", "subpca")))
 
   nc <- sapply(fits,ncomp)
   cunc <- c(0, cumsum(nc))
@@ -144,13 +149,13 @@ coef.clusterpca <- function(object) {
   v <- if (object$colwise) {
     nv <- sapply(object$fits, function(f) shape(f)[2])
     offsets <- cumsum(c(1, nv))
-    comp_indices <- lapply(1:length(nv), function(i) {
+    comp_indices <- lapply(seq_along(nv), function(i) {
       seq(offsets[i], offsets[i] + nv[i]-1)
     })
 
     Reduce("+", lapply(seq_along(object$fits), function(i) {
       fit <- object$fits[[i]]
-      v <- coef(fit)
+      v <- multivarious::components(fit)
       sc <- scores(fit)
 
       sparseMatrix(i=rep(object$block_indices[[i]], ncol(v)), j=rep(comp_indices[[i]], each=nrow(v)), x=as.vector(v),
@@ -159,7 +164,7 @@ coef.clusterpca <- function(object) {
     }))
   } else {
     do.call(cbind, lapply(object$fits, function(fit) {
-      coef(fit)
+      multivarious::components(fit)
     }))
   }
 
@@ -200,6 +205,11 @@ scores.clusterpca <- function(x, ...) {
 }
 
 #' @export
+components.clusterpca <- function(x, ...) {
+  coef(x)
+}
+
+#' @export
 sdev.clusterpca <- function(x) {
   sc <- scores(x)
   apply(sc,2,function(x) sqrt(sum(x^2)))
@@ -207,19 +217,21 @@ sdev.clusterpca <- function(x) {
 
 #' @export
 ncomp.clusterpca <- function(x) {
-  x$ncomp
+  sum(x$ncomp)
 }
 
 
 #' @export
 shape.clusterpca <- function(x) {
-  v <- coef(x)
+  v <- components(x)
   c(nrow(v), ncol(v))
 }
 
 #' @export
-residuals.clusterpca <- function(x, ncomp=x$ncomp, xorig, ...) {
-  if (length(ncomp) == 1) {
+residuals.clusterpca <- function(x, ncomp=NULL, xorig, ...) {
+  if (is.null(ncomp)) {
+    ncomp <- x$ncomp
+  } else if (length(ncomp) == 1) {
     ncomp <- rep(ncomp, length(x$fits))
   }
 
