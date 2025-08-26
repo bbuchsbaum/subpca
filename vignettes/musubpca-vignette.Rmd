@@ -1,0 +1,443 @@
+---
+title: "Multi-block Sub-PCA with musubpca"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Multi-block Sub-PCA with musubpca}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+```{r setup}
+library(subpca)
+library(multivarious)
+library(multidesign)
+```
+
+## Overview
+
+The `musubpca()` function extends sub-block PCA to multi-block data structures. It performs:
+
+1. **Inner PCA**: Separate PCA for each cluster within each block
+2. **Inner Meta-PCA**: Combines cluster-wise PCAs within each block  
+3. **Outer Meta-PCA**: Final PCA across all blocks
+
+This three-level hierarchy is ideal for complex multi-view or multi-modal data where you have:
+- Multiple data blocks (e.g., different measurement types)
+- Clusters of variables within each block
+- Need to capture both within-block and between-block relationships
+
+## Multi-block Data Structure
+
+First, let's understand multi-block data using the `multidesign` package:
+
+```{r multiblock-intro}
+set.seed(123)
+
+# Create three blocks of data
+# Block 1: Gene expression (100 observations × 40 genes)
+block1 <- matrix(rnorm(100 * 40, mean = 0, sd = 1), 100, 40)
+
+# Block 2: Protein levels (100 observations × 40 proteins)
+block2 <- matrix(rnorm(100 * 40, mean = 0, sd = 1.5), 100, 40)
+
+# Block 3: Metabolites (100 observations × 40 metabolites)
+block3 <- matrix(rnorm(100 * 40, mean = 0, sd = 2), 100, 40)
+
+# Create multi-block structure
+X_multi <- multiblock(list(block1, block2, block3))
+
+# Check structure
+cat("Multi-block dimensions:", dim(X_multi), "\n")
+cat("Number of blocks:", length(block_indices(X_multi)), "\n")
+cat("Block sizes:", sapply(block_indices(X_multi), length), "\n")
+```
+
+## Basic musubpca Analysis
+
+```{r basic-musubpca}
+# Define clusters within each block (4 clusters of 10 variables each)
+clus <- rep(1:4, each = 10)
+
+# Perform multi-block sub-PCA
+# IMPORTANT: Need at least 3 blocks for eigendecomposition
+result <- musubpca(X_multi, clus,
+                  ncomp = 6,          # Final components
+                  inner_ccomp = 2,    # Components per cluster within block
+                  ccomp = 2)          # Components per cluster at meta level
+
+# Examine result structure
+print(result)
+
+# Get final scores and loadings
+final_scores <- scores(result)
+final_loadings <- components(result)
+
+cat("\nFinal dimensions:\n")
+cat("Scores:", dim(final_scores), "\n")
+cat("Loadings:", dim(final_loadings), "\n")
+```
+
+## Understanding the Hierarchy
+
+```{r hierarchy-explanation}
+# The musubpca process has three levels:
+
+# Level 1: Cluster-wise PCA within each block
+# Each block has 4 clusters, each producing 2 components
+# Total: 3 blocks × 4 clusters × 2 components = 24 inner components
+
+# Level 2: Meta-PCA within each block
+# Combines the 8 components (4 clusters × 2) from each block into 2 meta-components
+# Total: 3 blocks × 2 meta-components = 6 components
+
+# Level 3: Final meta-PCA
+# Combines the 6 block-level meta-components into final 6 components
+
+cat("Hierarchical structure:\n")
+cat("Level 1: 3 blocks × 4 clusters × 2 components = 24 inner components\n")
+cat("Level 2: 3 blocks × 2 meta-components = 6 block-level components\n")
+cat("Level 3: 6 final components\n")
+```
+
+## Different Combination Methods
+
+The package offers different methods for combining components:
+
+```{r combination-methods}
+# Method 1: Standard PCA combination
+result_pca <- musubpca(X_multi, clus,
+                      ncomp = 5,
+                      inner_ccomp = 2,
+                      ccomp = 2,
+                      inner_combine = "pca",
+                      combine = "pca")
+
+# Method 2: Scaled combination (normalizes by standard deviation)
+result_scaled <- musubpca(X_multi, clus,
+                         ncomp = 5,
+                         inner_ccomp = 2,
+                         ccomp = 2,
+                         inner_combine = "scaled",
+                         combine = "scaled")
+
+# Method 3: MFA (Multiple Factor Analysis) style
+result_mfa <- musubpca(X_multi, clus,
+                      ncomp = 5,
+                      inner_ccomp = 2,
+                      ccomp = 2,
+                      inner_combine = "MFA",
+                      combine = "MFA")
+
+# Compare first components
+cor_pca_scaled <- cor(scores(result_pca)[, 1], scores(result_scaled)[, 1])
+cor_pca_mfa <- cor(scores(result_pca)[, 1], scores(result_mfa)[, 1])
+
+cat("Correlation between methods:\n")
+cat("PCA vs Scaled:", round(abs(cor_pca_scaled), 3), "\n")
+cat("PCA vs MFA:", round(abs(cor_pca_mfa), 3), "\n")
+```
+
+## Varying Components Across Clusters
+
+You can specify different numbers of components for different clusters:
+
+```{r varying-components}
+# Different components for each cluster
+inner_ccomp_vec <- c(1, 2, 3, 2)  # Cluster 1: 1, Cluster 2: 2, etc.
+ccomp_vec <- c(2, 3, 4, 3)        # Different at meta level
+
+result_varied <- musubpca(X_multi, clus,
+                         ncomp = 5,
+                         inner_ccomp = inner_ccomp_vec,
+                         ccomp = ccomp_vec)
+
+cat("Variable component extraction completed\n")
+cat("Final scores dimensions:", dim(scores(result_varied)), "\n")
+```
+
+## Fractional Variance Explained
+
+Instead of fixed components, specify variance to retain:
+
+```{r variance-explained}
+# Keep 80% variance at inner level, 90% at meta level
+result_variance <- musubpca(X_multi, clus,
+                           ncomp = 6,
+                           inner_ccomp = 0.8,  # 80% variance
+                           ccomp = 0.9)        # 90% variance
+
+# Note: This might produce warnings if the requested variance
+# requires more components than available dimensions
+cat("Variance-based extraction completed\n")
+```
+
+## Weighted Analysis
+
+Weight different clusters according to their importance:
+
+```{r weighted-analysis}
+# Give more weight to clusters 1 and 3
+weights <- c(2, 1, 2, 1)  # Weights for the 4 clusters
+
+result_weighted <- musubpca(X_multi, clus,
+                           weights = weights,
+                           ncomp = 5,
+                           inner_ccomp = 2,
+                           ccomp = 2)
+
+# Compare with unweighted
+result_unweighted <- musubpca(X_multi, clus,
+                             ncomp = 5,
+                             inner_ccomp = 2,
+                             ccomp = 2)
+
+# The weighted version emphasizes clusters 1 and 3
+scores_weighted <- scores(result_weighted)
+scores_unweighted <- scores(result_unweighted)
+
+cat("Effect of weighting on first component:\n")
+cat("Correlation:", round(cor(scores_weighted[, 1], scores_unweighted[, 1]), 3), "\n")
+```
+
+## Column-stacked Multi-block Data
+
+The function also handles column-stacked multi-block structures:
+
+```{r column-stacked}
+# Create column-stacked blocks (variables as rows, samples as columns)
+block1_T <- t(matrix(rnorm(50 * 30), 50, 30))  # 30 vars × 50 samples
+block2_T <- t(matrix(rnorm(50 * 30), 50, 30))
+block3_T <- t(matrix(rnorm(50 * 30), 50, 30))
+
+X_cstacked <- multiblock(list(block1_T, block2_T, block3_T))
+
+# Check if column-stacked
+cat("Is column-stacked:", is_cstacked(X_cstacked), "\n")
+
+# Define clusters for the 30 variables
+clus_T <- rep(1:3, each = 10)
+
+# Run musubpca on column-stacked data
+result_cstacked <- musubpca(X_cstacked, clus_T,
+                           ncomp = 4,
+                           inner_ccomp = 2,
+                           ccomp = 2)
+
+cat("Column-stacked analysis completed\n")
+cat("Result dimensions:", dim(scores(result_cstacked)), "\n")
+```
+
+## Preprocessing Options
+
+Apply preprocessing at different levels:
+
+```{r preprocessing}
+# Create data with different scales across blocks
+X_multi_scaled <- X_multi
+X_multi_scaled[, 41:80] <- X_multi_scaled[, 41:80] * 10   # Scale up block 2
+X_multi_scaled[, 81:120] <- X_multi_scaled[, 81:120] * 0.1 # Scale down block 3
+
+# Without preprocessing - dominated by high-variance block
+result_no_prep <- musubpca(X_multi_scaled, clus,
+                          ncomp = 4,
+                          inner_ccomp = 2,
+                          ccomp = 2,
+                          preproc = pass())  # No preprocessing
+
+# With centering
+result_centered <- musubpca(X_multi_scaled, clus,
+                           ncomp = 4,
+                           inner_ccomp = 2,
+                           ccomp = 2,
+                           preproc = center())
+
+# With centering and scaling
+result_scaled <- musubpca(X_multi_scaled, clus,
+                         ncomp = 4,
+                         inner_ccomp = 2,
+                         ccomp = 2,
+                         preproc = center() %>% scale())
+
+# Compare variance captured by first component
+var_no_prep <- var(scores(result_no_prep)[, 1])
+var_centered <- var(scores(result_centered)[, 1])
+var_scaled <- var(scores(result_scaled)[, 1])
+
+cat("Variance of first component:\n")
+cat("No preprocessing:", round(var_no_prep, 2), "\n")
+cat("Centered:", round(var_centered, 2), "\n")
+cat("Scaled:", round(var_scaled, 2), "\n")
+```
+
+## Projection and Reconstruction
+
+```{r projection-reconstruction}
+# Create new test data with same structure
+test_block1 <- matrix(rnorm(10 * 40), 10, 40)
+test_block2 <- matrix(rnorm(10 * 40), 10, 40)
+test_block3 <- matrix(rnorm(10 * 40), 10, 40)
+X_test <- cbind(test_block1, test_block2, test_block3)
+
+# Project new data
+scores_new <- project(result, X_test)
+cat("New data projection dimensions:", dim(scores_new), "\n")
+
+# Reconstruct from components
+X_reconstructed <- reconstruct(result, comp = 1:4)
+cat("Reconstruction dimensions:", dim(X_reconstructed), "\n")
+
+# Calculate reconstruction error
+X_combined <- do.call(cbind, list(block1, block2, block3))
+recon_error <- sum((X_combined - X_reconstructed)^2) / sum(X_combined^2)
+cat("Reconstruction error (4 components):", round(recon_error, 4), "\n")
+```
+
+## Visualization of Multi-block Structure
+
+```{r visualization, fig.height=8}
+# Comprehensive visualization
+par(mfrow = c(2, 2))
+
+# 1. Scores plot colored by data source
+scores_matrix <- scores(result)
+plot(scores_matrix[, 1:2],
+     main = "Multi-block Sub-PCA Scores",
+     xlab = "Component 1", ylab = "Component 2",
+     col = rep(1:3, each = 33, length.out = 100),
+     pch = 16)
+legend("topright", legend = c("Group 1", "Group 2", "Group 3"),
+       col = 1:3, pch = 16)
+
+# 2. Loadings by block
+loadings <- components(result)
+block_colors <- c(rep("red", 40), rep("green", 40), rep("blue", 40))
+plot(abs(loadings[, 1]), type = "h",
+     main = "Component 1 Loadings by Block",
+     xlab = "Variable Index", ylab = "|Loading|",
+     col = block_colors, lwd = 2)
+legend("topright", legend = c("Block 1", "Block 2", "Block 3"),
+       col = c("red", "green", "blue"), lwd = 2)
+
+# 3. Variance explained
+sdev_vals <- sdev(result)
+var_explained <- sdev_vals^2 / sum(sdev_vals^2)
+barplot(var_explained[1:6],
+        names.arg = paste("PC", 1:6),
+        main = "Variance Explained",
+        ylab = "Proportion",
+        col = "steelblue")
+
+# 4. Block contributions to first component
+block_contrib <- tapply(abs(loadings[, 1]), 
+                       rep(1:3, each = 40), sum)
+pie(block_contrib,
+    labels = paste("Block", 1:3, "\n", 
+                  round(100 * block_contrib/sum(block_contrib), 1), "%"),
+    main = "Block Contributions to PC1",
+    col = c("red", "green", "blue"))
+
+par(mfrow = c(1, 1))
+```
+
+## Performance with Parallel Processing
+
+The function uses parallel processing via `furrr`:
+
+```{r parallel-processing}
+# Set up parallel processing
+library(future)
+plan(multisession, workers = 2)  # Use 2 cores
+
+# Time comparison
+system.time({
+  result_parallel <- musubpca(X_multi, clus,
+                             ncomp = 5,
+                             inner_ccomp = 2,
+                             ccomp = 2)
+})
+
+# Reset to sequential
+plan(sequential)
+
+cat("Parallel processing completed\n")
+```
+
+## Integration with Other Functions
+
+The musubpca results can be further analyzed:
+
+```{r integration}
+# Truncate to fewer components
+result_truncated <- truncate(result, ncomp = 3)
+cat("Truncated to 3 components\n")
+
+# Access individual block fits
+# Note: result$fits contains the block-level meta-PCA fits
+n_block_fits <- length(result$fits)
+cat("Number of block-level fits:", n_block_fits, "\n")
+
+# Get residuals after reconstruction
+X_combined <- do.call(cbind, list(block1, block2, block3))
+X_recon <- reconstruct(result, comp = 1:4)
+residuals_matrix <- X_combined - X_recon
+
+cat("Residual statistics:\n")
+cat("Mean:", round(mean(residuals_matrix), 6), "\n")
+cat("SD:", round(sd(residuals_matrix), 4), "\n")
+```
+
+## Best Practices
+
+1. **Minimum blocks requirement**: Need at least 3 blocks for eigendecomposition to work properly
+
+2. **Component selection**: Ensure `(n_blocks × inner_ccomp) ≥ 3` to avoid dimension errors
+
+3. **Cluster definition**: Clusters should be consistent across blocks or meaningful within each block
+
+4. **Combination methods**:
+   - Use "pca" for standard combination
+   - Use "scaled" when blocks have different scales
+   - Use "MFA" for Multiple Factor Analysis style weighting
+
+5. **Memory considerations**: With many blocks and clusters, the computation can be memory-intensive
+
+## Troubleshooting Common Issues
+
+```{r troubleshooting, eval=FALSE}
+# Issue 1: Eigendecomposition error with too few blocks
+# Solution: Use at least 3 blocks
+blocks_min <- replicate(3, matrix(rnorm(50 * 30), 50, 30), simplify = FALSE)
+X_min <- multiblock(blocks_min)
+
+# Issue 2: Too many components requested
+# Solution: Ensure ncomp ≤ total available components
+max_components <- min(nrow(X_multi) - 1, 
+                     n_blocks * n_clusters * inner_ccomp)
+
+# Issue 3: Memory issues with large data
+# Solution: Reduce components or use fewer clusters
+# Or process blocks sequentially rather than in parallel
+```
+
+## Summary
+
+The `musubpca()` function provides:
+
+- Three-level hierarchical PCA for multi-block data
+- Flexible component extraction at each level
+- Multiple combination methods for different data characteristics
+- Integration with the multidesign package for multi-block structures
+- Parallel processing support for efficiency
+
+This makes it ideal for complex multi-modal datasets where you need to capture both within-block patterns (through cluster-wise PCA) and between-block relationships (through meta-PCA), such as multi-omics data, multi-sensor systems, or multi-view learning problems.

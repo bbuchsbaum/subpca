@@ -21,5 +21,11 @@ Remotes:
     bbuchsbaum/multivarious
 Suggests: 
     testthat (>= 3.0.0),
-    covr
+    covr,
+    knitr,
+    rmarkdown,
+    microbenchmark,
+    dendextend,
+    multidesign
 Config/testthat/edition: 3
+VignetteBuilder: knitr
