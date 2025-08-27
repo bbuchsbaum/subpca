@@ -1,0 +1,160 @@
+---
+title: "Two-Stage PCA Workflow: clusterpca to metapca"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Two-Stage PCA Workflow: clusterpca to metapca}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(subpca)
+```
+
+## Overview
+
+The `subpca` package implements a two-stage hierarchical PCA approach:
+
+1. **Stage 1**: Apply PCA separately to each cluster/block of variables (`clusterpca()`)
+2. **Stage 2**: Apply PCA over the combined cluster-wise PCA scores (`metapca()`)
+
+This workflow is particularly useful when your data has natural groupings of variables (e.g., different measurement types, time blocks, or feature categories) and you want to preserve both within-cluster and between-cluster structure.
+
+## Example: Simulated Multi-Block Data
+
+Let's create a dataset with 100 observations and 50 variables, where the variables naturally fall into 5 clusters:
+
+```{r simulate-data}
+set.seed(123)
+n_obs <- 100
+n_vars <- 50
+n_clusters <- 5
+
+# Create data with cluster structure
+X <- matrix(rnorm(n_obs * n_vars), n_obs, n_vars)
+
+# Add cluster-specific signals
+for (i in 1:n_clusters) {
+  cluster_vars <- ((i-1)*10 + 1):(i*10)
+  # Add a cluster-specific pattern
+  X[, cluster_vars] <- X[, cluster_vars] + 
+    2 * sin(seq(0, 2*pi, length.out = n_obs)) * rnorm(1)
+}
+
+# Define cluster membership
+clus <- rep(1:n_clusters, each = 10)
+```
+
+## Stage 1: Cluster-wise PCA
+
+First, we apply PCA separately to each cluster of variables:
+
+```{r clusterpca}
+# Fit separate PCA to each cluster, keeping 2 components per cluster
+cfit <- clusterpca(X, clus = clus, ccomp = 2)
+
+# Examine the structure
+print(cfit)
+
+# Number of clusters
+length(cfit$fits)
+
+# Components retained per cluster
+sapply(cfit$fits, ncomp)
+```
+
+## Stage 2: Meta-PCA
+
+Now we perform PCA over the combined cluster-wise scores:
+
+```{r metapca}
+# Perform meta-PCA over the cluster PCA scores
+mfit <- metapca(cfit$fits, ncomp = 3)
+
+# Examine the meta-PCA fit
+print(mfit)
+
+# Total variance explained
+cumsum(sdev(mfit)^2) / sum(sdev(mfit)^2)
+```
+
+## Projecting New Data
+
+The two-stage model can project new observations through both stages:
+
+```{r project}
+# Create hold-out test data with same structure
+X_test <- matrix(rnorm(20 * n_vars), 20, n_vars)
+for (i in 1:n_clusters) {
+  cluster_vars <- ((i-1)*10 + 1):(i*10)
+  X_test[, cluster_vars] <- X_test[, cluster_vars] + 
+    sin(seq(0, 2*pi, length.out = 20)) * rnorm(1)
+}
+
+# Project through the two-stage model
+# Note: metapca tracks the original variable indices
+test_scores <- project(mfit, X_test)
+
+dim(test_scores)  # 20 observations x 3 meta-components
+```
+
+## Understanding the Two-Stage Structure
+
+The key insight is that `metapca` preserves the connection to the original variables:
+
+```{r structure}
+# The meta-PCA knows about the original variable groupings
+str(mfit$outer_block_indices)
+
+# Each block corresponds to one cluster
+names(mfit$outer_block_indices)
+
+# Variables in first cluster
+mfit$outer_block_indices[[1]]
+```
+
+## Reconstruction
+
+We can reconstruct the original data by reversing through both stages:
+
+```{r reconstruct}
+# Reconstruct using 3 meta-components (which use 2 components per cluster)
+X_reconstructed <- reconstruct(mfit, scores(mfit))
+
+# Compare reconstruction error
+reconstruction_error <- norm(X - X_reconstructed, "F") / norm(X, "F")
+cat("Relative reconstruction error:", round(reconstruction_error, 4), "\n")
+```
+
+## Benefits of the Two-Stage Approach
+
+1. **Interpretability**: Components at each stage have clear meaning
+2. **Flexibility**: Different numbers of components per cluster
+3. **Efficiency**: Parallel computation of cluster-wise PCA
+4. **Robustness**: Local structure preserved within clusters
+
+## Advanced: Using subpca for Convenience
+
+The `subpca()` function wraps this two-stage process:
+
+```{r subpca}
+# One-line two-stage PCA
+sfit <- subpca(X, clus = clus, ccomp = 2, ncomp = 3)
+
+# Project new data (same result as before)
+test_scores2 <- project(sfit, X_test)
+
+# Verify same results
+all.equal(test_scores, test_scores2)
+```
+
+## Conclusion
+
+The two-stage `clusterpca()` → `metapca()` workflow provides a powerful framework for hierarchical dimensionality reduction that respects the natural structure in your data.

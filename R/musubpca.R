@@ -23,7 +23,7 @@ musubpca <- function(X,
                     preproc=center(), ...) {
 
 
-  assert_that(inherits(X, "multiblock_list"))
+  assert_that(inherits(X, "multiblock_list"), msg="X must be a multiblock_list object")
   inner_combine <- match.arg(inner_combine)
   combine <- match.arg(combine)
 
@@ -33,8 +33,8 @@ musubpca <- function(X,
     X <- t(X)
   }
 
-  assert_that(min(table(clus)) > 2)
-  assert_that(length(clus) == ncol(X[[1]]))
+  assert_that(min(table(clus)) > 2, msg="Each cluster must have at least 3 observations")
+  assert_that(length(clus) == ncol(X[[1]]), msg="Length of 'clus' must equal number of columns in X")
 
   ngroups <- length(unique(clus))
   groups <- sort(unique(clus))
@@ -42,7 +42,7 @@ musubpca <- function(X,
   if (!is.function(ccomp) && length(ccomp) == 1) {
     ccomp <- rep(ccomp, ngroups)
   } else {
-    assertthat::assert_that(length(ccomp) == ngroups)
+    assertthat::assert_that(length(ccomp) == ngroups, msg="Length of 'ccomp' must equal number of groups")
   }
 
   if (ccomp[1] < 1) {
@@ -54,7 +54,7 @@ musubpca <- function(X,
     }
   }
 
-  ## for each block run a cluster_pca
+  ## for each block run a clusterpca
   out <- furrr::future_map(X, function(x) {
     clusterpca(x, clus, ccomp=inner_ccomp, preproc=multivarious::fresh(preproc))
   }, .options = furrr::furrr_options(packages = c("multivarious", "subpca")))

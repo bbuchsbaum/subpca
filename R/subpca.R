@@ -48,14 +48,14 @@ subpca <- function(X, clus,
 
 
   combine <- match.arg(combine)
-  assert_that(length(clus) == ncol(X))
-  assert_that(min(table(clus)) > 2)
+  assert_that(length(clus) == ncol(X), msg="Length of 'clus' must equal number of columns in X")
+  assert_that(min(table(clus)) > 2, msg="Each cluster must have at least 3 observations")
 
   ngroups <- length(unique(clus))
   groups <- sort(unique(clus))
 
   if (!is.null(weights)) {
-    assert_that(length(weights) == ngroups)
+    assert_that(length(weights) == ngroups, msg="Length of 'weights' must equal number of groups")
   }
 
 

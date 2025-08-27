@@ -50,12 +50,12 @@ clusterpca <- function(X, clus,
                   pcafun=NULL) {
 
   if (colwise) {
-    assert_that(length(clus) == ncol(X))
+    assert_that(length(clus) == ncol(X), msg="Length of 'clus' must equal number of columns in X")
   } else {
-    assert_that(length(clus) == nrow(X))
+    assert_that(length(clus) == nrow(X), msg="Length of 'clus' must equal number of rows in X")
   }
 
-  assert_that(min(table(clus)) > 2)
+  assert_that(min(table(clus)) > 2, msg="Each cluster must have at least 3 observations")
 
   ngroups <- length(unique(clus))
   groups <- sort(unique(clus))
@@ -74,7 +74,7 @@ clusterpca <- function(X, clus,
     if (length(ccomp) == 1) {
       ccomp <- rep(ccomp, ngroups)
     } else {
-      assertthat::assert_that(length(ccomp) == ngroups)
+      assertthat::assert_that(length(ccomp) == ngroups, msg="Length of 'ccomp' must equal number of groups")
     }
 
     if (any(ccomp < 1)) {

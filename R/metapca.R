@@ -24,7 +24,7 @@
 #' @export
 #' @import assertthat
 metapca <- function(fits, ncomp=2, weights=NULL, combine=c("pca", "scaled","MFA"), outer_block_indices=NULL) {
-  assert_that(all(sapply(fits,function(f) inherits(f, "bi_projector"))))
+  assert_that(all(sapply(fits,function(f) inherits(f, "bi_projector"))), msg="All fits must be bi_projector objects")
 
   combine <- match.arg(combine)
 
@@ -88,6 +88,28 @@ project_block.metapca <- function(x, new_data, block, ...) {
   partial_project(x, new_data, colind=x$outer_block_indices[[block]])
 }
 
+#' @examples
+#' # Partial projection with missing variables
+#' \dontrun{
+#' X <- matrix(rnorm(100 * 20), 100, 20)
+#' clus <- rep(1:4, each = 5)
+#' fits <- lapply(1:4, function(i) {
+#'   idx <- which(clus == i)
+#'   multivarious::pca(X[, idx], ncomp = 2)
+#' })
+#' 
+#' # Create metapca with tracking of original indices
+#' outer_indices <- split(1:20, clus)
+#' mfit <- metapca(fits, ncomp = 3, outer_block_indices = outer_indices)
+#' 
+#' # New data with only columns 3, 7, 8, 15, 16 available
+#' X_partial <- matrix(rnorm(10 * 5), 10, 5)
+#' colind <- c(3, 7, 8, 15, 16)
+#' 
+#' # Project using only available columns
+#' scores_partial <- partial_project(mfit, X_partial, colind)
+#' dim(scores_partial)  # 10 x 3
+#' }
 #' @export
 partial_project.metapca <- function(x, new_data, colind, ...) {
   x0 <- do.call(cbind, lapply(1:length(x$outer_block_indices), function(i) {
@@ -112,7 +134,7 @@ partial_project.metapca <- function(x, new_data, colind, ...) {
 #' @export
 project.metapca <- function(x, new_data) {
   #browser()
-  assert_that(ncol(new_data) == sum(sapply(x$fits, function(f) shape(f)[1])))
+  assert_that(ncol(new_data) == sum(sapply(x$fits, function(f) shape(f)[1])), msg="Number of columns in new_data must match total input dimensions of fits")
   x0 <- do.call(cbind, lapply(1:length(x$outer_block_indices), function(i) {
     ind <- x$outer_block_indices[[i]]
     nd <- new_data[,ind,drop=FALSE]
