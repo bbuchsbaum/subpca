@@ -18,7 +18,8 @@ Imports:
     multivarious (>= 0.0.0.9000),
     assertthat
 Remotes: 
-    bbuchsbaum/multivarious
+    bbuchsbaum/multivarious,
+    bbuchsbaum/multidesign
 Suggests: 
     testthat (>= 3.0.0),
     covr,
