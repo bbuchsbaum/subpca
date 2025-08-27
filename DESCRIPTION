@@ -2,11 +2,10 @@ Package: subpca
 Title: What the Package Does (One Line, Title Case)
 Version: 0.0.0.9000
 Authors@R: 
-    person(given = "First",
-           family = "Last",
+    person(given = "Bradley",
+           family = "Buchsbaum",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
+           email = "brad.buchsbaum@gmail.com")
 Description: What the package does (one paragraph).
 License: `use_mit_license()`, `use_gpl3_license()` or friends to
     pick a license
@@ -16,7 +15,10 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2.9000
 Imports: 
     multivarious (>= 0.0.0.9000),
-    assertthat
+    assertthat,
+    furrr,
+    Matrix,
+    dendextend
 Remotes: 
     bbuchsbaum/multivarious,
     bbuchsbaum/multidesign
