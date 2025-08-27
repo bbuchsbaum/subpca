@@ -1,0 +1,37 @@
+url: https://bbuchsbaum.github.io/subpca/
+template:
+  bootstrap: 5
+  bootswatch: cosmo
+  
+home:
+  title: "subpca: Hierarchical PCA for Clustered Data"
+  description: "Perform principal component analysis on sub-blocks or clusters of data, with meta-PCA to combine cluster-wise results."
+
+navbar:
+  title: "subpca"
+  left:
+    - text: "Reference"
+      href: reference/index.html
+    - text: "Vignettes"
+      href: articles/index.html
+  right:
+    - icon: fa-github
+      href: https://github.com/bbuchsbaum/subpca
+
+reference:
+- title: "Main Functions"
+  desc: "Core functions for hierarchical PCA analysis"
+  contents:
+  - subpca
+  - clusterpca
+  - hcluspca
+  - musubpca
+  - metapca
+
+- title: "S3 Methods and Utilities"
+  desc: "Methods for working with subpca objects"
+  contents:
+  - has_concept("methods")
+  - starts_with("project")
+  - starts_with("partial")
+  - everything()
