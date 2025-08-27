@@ -67,27 +67,29 @@ hcluspca <- function(X, hclus, cuts,
     stop("if `ccomp` is a vector it must have an entry for every level, including the global level if skip_global=FALSE")
   }
 
-  pfun <- function(X, ncomp, preproc, ind) {
-    if (est_method == "standard") {
-      # If ncomp is a function, we need to fit with max components first, then truncate
-      if (is.function(ncomp)) {
-        message("fitting pca, method ", svd_method, " ncomp = function")
-        fit0 <- pca(X, ncomp=min(dim(X)), preproc=preproc, method=svd_method)
-        nc <- ncomp(fit0)
-        truncate(fit0, nc)
+  pfun_by_level <- function(level) {
+    force(level)
+    function(X, ncomp, preproc, ind) {
+      if (est_method == "standard") {
+        # If ncomp is a function, we need to fit with max components first, then truncate
+        if (is.function(ncomp)) {
+          message("fitting pca, method ", svd_method, " ncomp = function")
+          fit0 <- pca(X, ncomp=min(dim(X)), preproc=preproc, method=svd_method)
+          nc <- ncomp(fit0)
+          truncate(fit0, nc)
+        } else {
+          message("fitting pca, method ", svd_method, " ncomp = ", ncomp)
+          pca(X, ncomp=ncomp, preproc=preproc, method=svd_method)
+        }
+      } else if (est_method == "smooth") {
+        stopifnot(!is.null(cds))
+        S <- spatial_constraints(cds[ind,,drop=FALSE], sigma_within=spat_smooth[level])
+        S <- neighborweights::make_doubly_stochastic(S)
+        genpca(X, M=S, ncomp=ncomp, preproc=preproc)
       } else {
-        message("fitting pca, method ", svd_method, " ncomp = ", ncomp)
-        pca(X, ncomp=ncomp, preproc=preproc, method=svd_method)
+        stop("unknown est_method")
       }
-    } else if (est_method == "smooth") {
-      coord <- cds[ind,]
-      S <- spatial_constraints(cds[ind,,drop=FALSE], sigma_within=spat_smooth[level])
-      S <- neighborweights::make_doubly_stochastic(S)
-      genpca(x, M=S, ncomp=ncomp, preproc=preproc)
-    } else {
-      stop()
     }
-
   }
 
   fits <- vector(nlevs, mode="list")
@@ -96,6 +98,7 @@ hcluspca <- function(X, hclus, cuts,
 
   if (!skip_global) {
     ## outer fit
+    pfun <- pfun_by_level(1)
     fit0 <- pfun(X, ccomp[[1]], preproc, 1:nrow(X))
 
     Xresid0 <- residuals(fit0, ncomp=multivarious::ncomp(fit0), xorig=X)
@@ -114,7 +117,7 @@ hcluspca <- function(X, hclus, cuts,
     S <- NULL
   }
 
-  for (i in 1:length(cuts)) {
+  for (i in seq_along(cuts)) {
     #print(i)
     message("residuals for level", i, " = ", sum(Xresid^2))
     kind <- cutset[[i]]
@@ -136,7 +139,7 @@ hcluspca <- function(X, hclus, cuts,
     fit <- try(clusterpca(Xresid, clus = kind,
                       ccomp=ccomp[[fi+i]],
                       preproc=pass(),
-                      colwise=FALSE, pcafun=pfun))
+                      colwise=FALSE, pcafun=pfun_by_level(i)))
 
 
     message('computing residuals, level ', i)

@@ -78,7 +78,7 @@ musubpca <- function(X,
   }, .options = furrr::furrr_options(packages = c("multivarious", "subpca")))
 
   pres <- metapca(fits2, ncomp=ncomp, weights=weights, combine=combine)
-
+  return(pres)
 }
 
 

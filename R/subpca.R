@@ -8,7 +8,7 @@
 #'
 #' @param X the data matrix
 #' @param clus the cluster index vector
-#' @param nomp the number of final "meta" components.
+#' @param ncomp the number of final "meta" components.
 #' @param ccomp the number of components to extract from each block (can vary by block or be fixed, see details).
 #' @param preproc the preprocessor
 #' @param combine how method to combine cluster-wise PCAs.

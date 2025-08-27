@@ -22,6 +22,8 @@ musubpca(
 
 \item{clus}{the cluster index vector}
 
+\item{ncomp}{the number of final "meta" components.}
+
 \item{ccomp}{the number of components to extract from each block (can vary by block or be fixed, see details).}
 
 \item{combine}{how method to combine cluster-wise PCAs.}

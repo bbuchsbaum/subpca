@@ -20,6 +20,8 @@ subpca(
 
 \item{clus}{the cluster index vector}
 
+\item{ncomp}{the number of final "meta" components.}
+
 \item{ccomp}{the number of components to extract from each block (can vary by block or be fixed, see details).}
 
 \item{combine}{how method to combine cluster-wise PCAs.}
@@ -27,8 +29,6 @@ subpca(
 \item{preproc}{the preprocessor}
 
 \item{...}{extra args sent to \code{metapca}}
-
-\item{nomp}{the number of final "meta" components.}
 }
 \description{
 PCA on sublocks or clusters followed again by PCA

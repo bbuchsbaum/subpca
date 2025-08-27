@@ -39,7 +39,8 @@ metapca <- function(fits, ncomp=2, weights=NULL, combine=c("pca", "scaled","MFA"
   }
 
   pres <- if (combine == "scaled") {
-    wts <- (1/sqrt(matrixStats::colSds(X))) * weights
+    sd <- pmax(matrixStats::colSds(X), .Machine$double.eps)
+    wts <- (1/sd) * weights
     genpca::genpca(unclass(X), A=wts, ncomp=ncomp, preproc=pass())
   } else if (combine == "MFA") {
     wts <- rep(sapply(fits, function(x) 1/sdev(x)[1]), nc) * weights
@@ -50,7 +51,7 @@ metapca <- function(fits, ncomp=2, weights=NULL, combine=c("pca", "scaled","MFA"
 
   b_ind <- function(nv) {
     offsets <- cumsum(c(1, nv))
-    lapply(1:length(nvars), function(i) {
+    lapply(seq_along(nv), function(i) {
       seq(offsets[i], offsets[i] + nv[i]-1)
     })
   }
@@ -62,7 +63,7 @@ metapca <- function(fits, ncomp=2, weights=NULL, combine=c("pca", "scaled","MFA"
     outer_block_indices <- b_ind(nvars)
   } else {
     vcount <- sapply(outer_block_indices, length)
-    assert_that(all(nvars == vcount), msg="`outer_block_indices` does not correpsond to input shape of `fits`")
+    assert_that(all(nvars == vcount), msg="`outer_block_indices` does not correspond to input shape of `fits`")
   }
 
   inner_block_indices <- b_ind(nc)

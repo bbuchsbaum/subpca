@@ -212,7 +212,7 @@ components.clusterpca <- function(x, ...) {
 #' @export
 sdev.clusterpca <- function(x) {
   sc <- scores(x)
-  apply(sc,2,function(x) sqrt(sum(x^2)))
+  sqrt(colSums(sc * sc))
 }
 
 #' @export
