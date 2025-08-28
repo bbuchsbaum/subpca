@@ -27,11 +27,21 @@ reference:
   - hcluspca
   - musubpca
   - metapca
+  - time_contrast_clusterpca
 
-- title: "S3 Methods and Utilities"
-  desc: "Methods for working with subpca objects"
+- title: "Time Contrast Methods"
+  desc: "Methods for time-contrast analysis"
   contents:
-  - has_concept("methods")
-  - starts_with("project")
-  - starts_with("partial")
-  - everything()
+  - contrast_ratio
+  - time_filters
+  - ncomp.time_contrast_clusterpca
+  - plot.time_contrast_clusterpca
+  - project.time_contrast_clusterpca
+  - summary.time_contrast_clusterpca
+  
+- title: "Helper Functions"
+  desc: "Utility functions for analysis"
+  contents:
+  - background_info
+  - cluster_centroid_distmat
+  - cluster_diffusion_weights
