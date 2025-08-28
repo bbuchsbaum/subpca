@@ -18,7 +18,9 @@ Imports:
     assertthat,
     furrr,
     Matrix,
-    dendextend
+    dendextend,
+    irlba,
+    stats
 Remotes: 
     bbuchsbaum/multivarious,
     bbuchsbaum/multidesign
@@ -30,7 +32,8 @@ Suggests:
     microbenchmark,
     dendextend,
     multidesign,
-    pkgdown
+    pkgdown,
+    RSpectra
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 URL: https://bbuchsbaum.github.io/subpca/

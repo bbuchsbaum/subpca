@@ -1,0 +1,114 @@
+---
+title: "Distinctive Time-Domain Cluster PCA with Weighted Backgrounds"
+output:
+  html_vignette:
+    df_print: paged
+vignette: >
+  %\VignetteIndexEntry{Time-contrast Cluster PCA}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 4)
+set.seed(1)
+```
+
+## Overview
+
+This vignette demonstrates `time_contrast_clusterpca()`, which, for each cluster of voxels,
+finds time filters that maximize variance in that cluster relative to a background built
+from the mean time-series of other clusters. The background can be uniform, distance-weighted,
+KNN-based, ring-based, similarity-based, or a precomputed graph diffusion.
+
+## Simulated data
+
+```{r data}
+library(subpca)
+
+Tn <- 200; P <- 1200; K <- 60
+clus <- sample(seq_len(K), P, replace = TRUE)
+
+# Fake coordinates to define distances between cluster centroids
+coords <- matrix(rnorm(P * 3), ncol = 3)
+distmat <- cluster_centroid_distmat(coords, clus, metric = "euclidean")
+
+# Build time series with weak global drifts + cluster-local bumps
+X <- matrix(rnorm(Tn * P, sd = 0.7), nrow = Tn)
+t <- seq(0, 6*pi, length.out = Tn)
+global <- 0.5 * sin(t)
+for (k in seq_len(K)) {
+  idx <- which(clus == k)
+  # a local motif added to this cluster
+  motif <- 0.8 * cos(t + runif(1, 0, pi))
+  X[, idx] <- X[, idx] + motif + rnorm(Tn, sd = 0.1)
+}
+# add a global drift
+X <- X + global
+```
+
+## Contrast with near vs far backgrounds
+
+```{r near-far}
+sigma0 <- median(distmat[distmat > 0])
+
+fit_near <- time_contrast_clusterpca(
+  X, clus, ncomp = 3,
+  scheme = list(type = "gaussian", sigma = sigma0),     # emphasize near background
+  distmat = distmat, q_bg = 20
+)
+
+fit_far <- time_contrast_clusterpca(
+  X, clus, ncomp = 3,
+  scheme = list(type = "knn_far", k = 20),              # emphasize far background
+  distmat = distmat, q_bg = 20
+)
+```
+
+Pick a cluster of interest and compare:
+
+```{r compare, fig.height=8}
+ci <- sample(seq_len(K), 1)
+par(mfrow = c(2,2), mar = c(4,4,2,1))
+plot(fit_near,  cluster = ci, type = "spectrum")
+plot(fit_far,   cluster = ci, type = "spectrum")
+plot(fit_near,  cluster = ci, type = "time", comps = 1:3)
+plot(fit_far,   cluster = ci, type = "time", comps = 1:3)
+par(mfrow = c(1,1))
+```
+
+Near-background weighting tends to remove smooth local structure, highlighting
+fine cluster-specific dynamics, while far-background weighting emphasizes local
+patterns that stand out globally.
+
+## Diffusion-weighted background (optional)
+
+```{r diffusion}
+# Build a diffusion weight matrix from the centroid distances
+W <- cluster_diffusion_weights(distmat, k = 15, sigma = sigma0, beta = 1)
+fit_diff <- time_contrast_clusterpca(
+  X, clus, ncomp = 3,
+  scheme = list(type = "graphdiff", W = W)
+)
+plot(fit_diff, cluster = ci, type = "bg")  # inspect weights used for that cluster
+```
+
+## Using the result downstream
+
+`time_contrast_clusterpca` returns the same S3 as other cluster PCA variants (scores, coef), so you can pass it straight into `metapca()`:
+
+```{r downstream}
+Ld <- coef(fit_near)     # P x sum ncomp
+Sc <- scores(fit_near)   # T x sum ncomp
+# meta <- metapca(list(fit_near), ncomp = 5, combine = "scaled")
+```
+
+## Reproducible projections
+
+For new runs or held-out data:
+
+```{r projection}
+Sc_train <- scores(fit_near)
+Sc_proj  <- project(fit_near, X)
+max(abs(Sc_train - Sc_proj))
+```
