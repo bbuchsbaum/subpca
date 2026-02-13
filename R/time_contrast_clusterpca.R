@@ -165,9 +165,15 @@ time_contrast_clusterpca <- function(
       contrastive = .tc_fit_cluster_contrastive(Xc, r, bg, alpha, alpha_grid, tau_ci, C_name, Tn, C_idx, DENSE_EIG_FALLBACK_LIMIT)
     )
     
-    # Handle NULL result from contrastive mode (empty fit)
-    if (is.null(fit_result)) {
-      next  # Empty fit was already stored by helper function
+    # Handle empty fit payload returned by contrastive mode.
+    if (!is.null(fit_result$empty_fit)) {
+      fits[[ci]] <- fit_result$empty_fit
+      if (isTRUE(verbose)) {
+        msg <- sprintf("[time_contrast] cluster %s: |C|=%d, r=0, bg_rank=%d (empty fit)",
+                       C_name, length(C_idx), length(bg$s))
+        message(msg)
+      }
+      next
     }
     
     u <- fit_result$u
@@ -349,7 +355,7 @@ time_contrast_clusterpca <- function(
   } else {
     # base svd, compute only U and d
     s <- base::svd(L, nu = rmax, nv = 0L)
-    list(u = s$u, d = s$d)
+    list(u = s$u, d = s$d[seq_len(rmax)])
   }
   list(U = svdL$u, s = svdL$d, mu = mu, used = used, w = w)
 }
@@ -451,7 +457,7 @@ time_contrast_clusterpca <- function(
     empty_fit <- .tc_empty_fit(Tn, length(C_idx), bg, tau_ci, C_name)
     empty_fit$bg$mode <- "contrastive"
     empty_fit$bg$alpha <- alpha_ci
-    return(NULL)  # Signal empty result
+    return(list(empty_fit = empty_fit))
   }
   
   u <- eig$vec    # T x r_pos
@@ -466,7 +472,7 @@ time_contrast_clusterpca <- function(
     empty_fit <- .tc_empty_fit(Tn, length(C_idx), bg, tau_ci, C_name)
     empty_fit$bg$mode <- "contrastive"
     empty_fit$bg$alpha <- alpha_ci
-    return(NULL)  # Signal empty result
+    return(list(empty_fit = empty_fit))
   }
   
   u <- u[, keep, drop = FALSE]
@@ -485,7 +491,10 @@ time_contrast_clusterpca <- function(
 
 # Residualize on background means with ridge: R = (I - H_ridge) Z, H = U diag(s^2/(s^2+rho)) U^T
 .tc_residualize_apply <- function(U, s, rho, Z) {
-  if (!length(s)) return(Z)
+  r <- min(ncol(U), length(s))
+  if (r == 0L) return(Z)
+  U <- U[, seq_len(r), drop = FALSE]
+  s <- s[seq_len(r)]
   if (!is.finite(rho) || rho < 0) rho <- 0
   # Z_res = Z - U diag( s^2/(s^2+rho) ) U^T Z  = U diag(rho/(s^2+rho)) U^T Z + (I - U U^T) Z
   UtZ <- crossprod(U, Z)                           # r x q
@@ -666,11 +675,15 @@ project.time_contrast_clusterpca <- function(object, new_data, colind = NULL, ce
     }
 
     # per-mode transform
-    if (is.null(f$bg$mode) || f$bg$mode == "whiten") {
+    mode <- if (is.null(f$bg$mode)) "whiten" else f$bg$mode
+    same_time_basis <- is.null(f$bg$U) || ncol(f$bg$U) == 0L || nrow(f$bg$U) == nrow(Xc)
+    if (mode == "whiten" && same_time_basis) {
       Ynew <- .tc_whiten_apply(f$bg$U, f$bg$s, f$bg$tau, Xc)
-    } else if (f$bg$mode == "partial") {
+    } else if (mode == "partial" && same_time_basis) {
       Ynew <- .tc_residualize_apply(f$bg$U, f$bg$s, f$bg$rho, Xc)
-    } else { # "contrastive" uses identity transform
+    } else {
+      # If the incoming sample axis differs from the training sample axis,
+      # fall back to direct projection in feature space.
       Ynew <- Xc
     }
     # project onto voxel loadings: scores = Y * V

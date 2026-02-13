@@ -225,7 +225,7 @@ test_that("Functions handle edge cases appropriately", {
   
   expect_error(
     subpca(X, clus_invalid, ncomp = 2),
-    "length\\(clus\\) not equal to ncol\\(X\\)"
+    "Length of 'clus' must equal number of columns in X"
   )
   
   # Very small but valid case

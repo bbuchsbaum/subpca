@@ -49,11 +49,14 @@ contrast_ratio.time_contrast_clusterpca <- function(x, by_cluster = FALSE, norma
 #' @return Data frame with one row per cluster.
 #' @export
 background_info <- function(x) {
-  K <- length(x$fits)
+  `%||%` <- function(a, b) if (is.null(a)) b else a
   data.frame(
     cluster = vapply(x$fits, function(f) as.character(f$cluster), character(1)),
+    mode    = vapply(x$fits, function(f) f$bg$mode %||% "whiten", character(1)),
     bg_rank = vapply(x$fits, function(f) length(f$bg$s), integer(1)),
-    tau     = vapply(x$fits, function(f) f$bg$tau, numeric(1)),
+    tau     = vapply(x$fits, function(f) if (is.null(f$bg$tau)) NA_real_ else f$bg$tau, numeric(1)),
+    rho     = vapply(x$fits, function(f) if (is.null(f$bg$rho)) NA_real_ else f$bg$rho, numeric(1)),
+    alpha   = vapply(x$fits, function(f) if (is.null(f$bg$alpha)) NA_real_ else f$bg$alpha, numeric(1)),
     used_bg_clusters = vapply(x$fits, function(f) length(f$bg$used), integer(1)),
     nvars   = vapply(x$fits, function(f) f$nvars, integer(1)),
     ncomp   = vapply(x$fits, function(f) f$ncomp, integer(1)),

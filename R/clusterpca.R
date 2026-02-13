@@ -97,8 +97,9 @@ clusterpca <- function(X, clus,
     }
   }
 
-  proc <- prep(preproc)
-  X <- init_transform(proc, X)
+  fit_preproc <- multivarious::fit_transform(preproc, X)
+  proc <- fit_preproc$preproc
+  X <- fit_preproc$transformed
 
   sind <- if (colwise) {
     split(1:ncol(X), clus)
@@ -156,7 +157,6 @@ coef.clusterpca <- function(object) {
     Reduce("+", lapply(seq_along(object$fits), function(i) {
       fit <- object$fits[[i]]
       v <- multivarious::components(fit)
-      sc <- scores(fit)
 
       sparseMatrix(i=rep(object$block_indices[[i]], ncol(v)), j=rep(comp_indices[[i]], each=nrow(v)), x=as.vector(v),
                    dims=c(length(object$clus),sum(nv)))
@@ -211,8 +211,7 @@ components.clusterpca <- function(x, ...) {
 
 #' @export
 sdev.clusterpca <- function(x) {
-  sc <- scores(x)
-  sqrt(colSums(sc * sc))
+  unlist(lapply(x$fits, multivarious::sdev), use.names = FALSE)
 }
 
 #' @export
@@ -257,4 +256,3 @@ residuals.clusterpca <- function(x, ncomp=NULL, xorig, ...) {
   xres
 
 }
-

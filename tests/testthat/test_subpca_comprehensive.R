@@ -136,7 +136,7 @@ test_that("subpca validates cluster sizes", {
   
   expect_error(
     subpca(X, clus_invalid, ncomp = 2),
-    "min\\(table\\(clus\\)\\) not greater than 2"
+    "Each cluster must have at least 3 observations"
   )
   
   # Valid: all clusters have at least 3 members

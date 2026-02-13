@@ -1,26 +1,34 @@
 Package: subpca
-Title: What the Package Does (One Line, Title Case)
+Title: Clustered and Hierarchical Principal Components Analysis
 Version: 0.0.0.9000
 Authors@R: 
     person(given = "Bradley",
            family = "Buchsbaum",
            role = c("aut", "cre"),
            email = "brad.buchsbaum@gmail.com")
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to
-    pick a license
+Author: Bradley Buchsbaum
+Maintainer: Bradley Buchsbaum <brad.buchsbaum@gmail.com>
+Description: Provides PCA workflows that decompose data by feature clusters,
+    combine block-wise decompositions with a meta-PCA, and extend to
+    hierarchical and time-contrast settings. Includes projection,
+    reconstruction, and diagnostics for multi-stage PCA models.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2.9000
+RoxygenNote: 7.3.3
 Imports: 
     multivarious (>= 0.0.0.9000),
     multidesign,
     assertthat,
     furrr,
+    purrr,
     Matrix,
     dendextend,
+    genpca,
     irlba,
+    matrixStats,
+    neighborweights,
     stats
 Remotes: 
     bbuchsbaum/multivarious,
@@ -31,9 +39,9 @@ Suggests:
     knitr,
     rmarkdown,
     microbenchmark,
-    dendextend,
     pkgdown,
     RSpectra
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 URL: https://bbuchsbaum.github.io/subpca/
+Config/Needs/website: albersdown

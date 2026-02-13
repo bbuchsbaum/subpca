@@ -13,7 +13,7 @@ test_that("subpca handles minimum cluster size correctly", {
   clus_small <- c(1,1, 2,2, 3,3,3,3,3)  # Only 2 in first clusters
   expect_error(
     subpca(X, clus_small, ncomp=2),
-    "min\\(table\\(clus\\)\\) not greater than 2"
+    "Each cluster must have at least 3 observations"
   )
 })
 

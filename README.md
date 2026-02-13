@@ -4,6 +4,7 @@
 # subpca
 
 <!-- badges: start -->
+
 <!-- badges: end -->
 
 The goal of subpca is to provide a way of computing pca within
@@ -18,3 +19,13 @@ You can install the development version from
 # install.packages("devtools")
 devtools::install_github("bbuchsbaum/subpca")
 ```
+
+<!-- albersdown:theme-note:start -->
+
+## Albers theme
+
+This package uses the albersdown theme. Existing vignette theme hooks
+are replaced so `albers.css` and local `albers.js` render consistently
+on CRAN and GitHub Pages. The palette family is provided via
+`params$family` (default ‘red’). The pkgdown site uses
+`template: { package: albersdown }`. <!-- albersdown:theme-note:end -->

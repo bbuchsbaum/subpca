@@ -142,7 +142,7 @@ test_that("musubpca validates cluster sizes", {
   # This should fail because minimum cluster size is 3
   expect_error(
     musubpca(X, clus_invalid, ncomp = 2),
-    "min\\(table\\(clus\\)\\) not greater than 2"
+    "Each cluster must have at least 3 observations"
   )
   
   # Valid clustering - need 3 blocks and enough components for eigendecomp

@@ -68,7 +68,7 @@ subpca <- function(X, clus,
 }
 
 #' @export
-print.subpca <- function(x) {
+print.subpca <- function(x, ...) {
   cat("subpca: ", paste0(class(x)), "\n")
   cat("number of clusters: ", attr(x, "nclus"), "\n")
   cat("input dim: ", nrow(x$v), "\n")
@@ -79,4 +79,3 @@ print.subpca <- function(x) {
 components.subpca <- function(x, ...) {
   x$v
 }
-

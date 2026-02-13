@@ -23,7 +23,7 @@
 #' ## 100 images each with 50 features
 #' X <- matrix(rnorm(200*100), 200, 100)
 #' cuts <- c(4, 8, 16)
-#' hclus <- dclust::dclust(grid, nstart=10)
+#' hclus <- hclust(dist(grid), method = "ward.D2")
 #' hres1 <- hcluspca(X, hclus, cuts, est_method="standard", ccomp=c(4,2,2,2))
 #' hres2 <- hcluspca(X, hclus, cuts, skip_global=TRUE, est_method="standard", ccomp=c(1,1,1))
 #'
@@ -52,6 +52,8 @@ hcluspca <- function(X, hclus, cuts,
   #Xp <- pre_process(preproc, X)
 
   nlevs <- if (skip_global) length(cuts) else length(cuts) + 1
+  assertthat::assert_that(length(spat_smooth) >= nlevs, msg="`spat_smooth` must have at least one entry per fitted level")
+  assertthat::assert_that(is.logical(intercept) && length(intercept) == 1 && !is.na(intercept), msg="`intercept` must be TRUE or FALSE")
 
   if (is.function(ccomp) && length(ccomp) == 1) {
     ccomp <- lapply(1:nlevs, function(i) ccomp)
@@ -62,9 +64,30 @@ hcluspca <- function(X, hclus, cuts,
   }
 
   assertthat::assert_that(all(cuts > 1), msg="all `cuts` must be greater than 1")
+  assertthat::assert_that(all(diff(cuts) > 0), msg="`cuts` must be strictly increasing from coarse to fine levels")
 
   if (!is.function(ccomp) && length(ccomp) != nlevs) {
     stop("if `ccomp` is a vector it must have an entry for every level, including the global level if skip_global=FALSE")
+  }
+
+  resolve_ncomp <- function(ncomp, fit, i) {
+    if (is.function(ncomp)) {
+      nc <- if (length(formals(ncomp)) >= 2) ncomp(fit, i) else ncomp(fit)
+    } else {
+      nc <- ncomp
+    }
+
+    if (!is.numeric(nc) || length(nc) != 1 || !is.finite(nc)) {
+      stop("`ccomp` function must return one finite numeric value")
+    }
+
+    nc <- floor(nc)
+
+    if (nc < 1) {
+      stop("`ccomp` function must return values >= 1")
+    }
+
+    min(nc, multivarious::ncomp(fit))
   }
 
   pfun_by_level <- function(level) {
@@ -75,7 +98,7 @@ hcluspca <- function(X, hclus, cuts,
         if (is.function(ncomp)) {
           message("fitting pca, method ", svd_method, " ncomp = function")
           fit0 <- pca(X, ncomp=min(dim(X)), preproc=preproc, method=svd_method)
-          nc <- ncomp(fit0)
+          nc <- resolve_ncomp(ncomp, fit0, level)
           truncate(fit0, nc)
         } else {
           message("fitting pca, method ", svd_method, " ncomp = ", ncomp)
@@ -110,8 +133,9 @@ hcluspca <- function(X, hclus, cuts,
     S <- scores(fit0)
   } else {
     ## skip outer fit
-    proc <- prep(preproc)
-    Xresid0 <- init_transform(proc, X)
+    fit_preproc <- multivarious::fit_transform(preproc, X)
+    proc <- fit_preproc$preproc
+    Xresid0 <- fit_preproc$transformed
     Xresid <- Xresid0
     fi <- 0
     S <- NULL
@@ -128,18 +152,33 @@ hcluspca <- function(X, hclus, cuts,
       sind <- split(1:length(kind), kind)
       for (j in 1:length(sind)) {
         Z <- S[sind[[j]],,drop=FALSE]
-        keep <- which(Z[1,] != 0)
-        Z <- Z[,keep]
+        keep <- which(colSums(abs(Z)) > 0)
+        if (length(keep) == 0) {
+          next
+        }
+
+        Z <- as.matrix(Z[,keep,drop=FALSE])
+        if (intercept) {
+          Z <- cbind(`(Intercept)`=1, Z)
+        }
         Y <- Xresid[sind[[j]],]
         rfit <- lm.fit(as.matrix(Z),as.matrix(Y))
         Xresid[sind[[j]],] <- resid(rfit)
       }
     }
 
-    fit <- try(clusterpca(Xresid, clus = kind,
-                      ccomp=ccomp[[fi+i]],
-                      preproc=pass(),
-                      colwise=FALSE, pcafun=pfun_by_level(i)))
+    fit <- tryCatch(
+      clusterpca(Xresid, clus = kind,
+                 ccomp=ccomp[[fi+i]],
+                 preproc=pass(),
+                 colwise=FALSE, pcafun=pfun_by_level(fi+i)),
+      error = function(e) {
+        stop(
+          sprintf("hcluspca failed at level %d (cut=%d): %s", i, cuts[i], conditionMessage(e)),
+          call. = FALSE
+        )
+      }
+    )
 
 
     message('computing residuals, level ', i)
@@ -203,4 +242,3 @@ hcluspca <- function(X, hclus, cuts,
   # reg$spat_smooth <- spat_smooth
   # reg
 }
-

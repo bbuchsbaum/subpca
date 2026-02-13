@@ -36,7 +36,7 @@ grid <- expand.grid(1:20, 1:10)
 ## 100 images each with 50 features
 X <- matrix(rnorm(200*100), 200, 100)
 cuts <- c(4, 8, 16)
-hclus <- dclust::dclust(grid, nstart=10)
+hclus <- hclust(dist(grid), method = "ward.D2")
 hres1 <- hcluspca(X, hclus, cuts, est_method="standard", ccomp=c(4,2,2,2))
 hres2 <- hcluspca(X, hclus, cuts, skip_global=TRUE, est_method="standard", ccomp=c(1,1,1))
 

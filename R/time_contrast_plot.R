@@ -14,7 +14,6 @@
 #' @export
 plot.time_contrast_clusterpca <- function(x, cluster = 1, type = c("spectrum","time","bg"),
                                           comps = 1:3, reorder_bg = TRUE, ...) {
-  `%||%` <- function(x, y) if (is.null(x)) y else x
   type <- match.arg(type)
   ci <- if (is.numeric(cluster)) as.integer(cluster) else match(as.character(cluster), x$clusters)
   if (is.na(ci) || ci < 1L || ci > length(x$fits)) stop("Invalid 'cluster'.")
@@ -23,7 +22,8 @@ plot.time_contrast_clusterpca <- function(x, cluster = 1, type = c("spectrum","t
   if (type == "spectrum") {
     vals <- (f$d)^2
     if (!length(vals)) { plot.new(); title("No components"); return(invisible()) }
-    ttl <- paste0("Spectrum (", f$bg$mode %||% "whiten", "): ", f$cluster)
+    mode <- if (is.null(f$bg$mode)) "whiten" else f$bg$mode
+    ttl <- paste0("Spectrum (", mode, "): ", f$cluster)
     barplot(vals, border = NA, ylab = expression(d[i]^2), xlab = "component", main = ttl, ...)
     abline(h = 0, col = "gray80")
     return(invisible())

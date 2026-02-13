@@ -2,25 +2,24 @@ url: https://bbuchsbaum.github.io/subpca/
 template:
   bootstrap: 5
   bootswatch: cosmo
-  
+  package: albersdown
 home:
-  title: "subpca: Hierarchical PCA for Clustered Data"
-  description: "Perform principal component analysis on sub-blocks or clusters of data, with meta-PCA to combine cluster-wise results."
-
+  title: 'subpca: Hierarchical PCA for Clustered Data'
+  description: Perform principal component analysis on sub-blocks or clusters of data,
+    with meta-PCA to combine cluster-wise results.
 navbar:
-  title: "subpca"
+  title: subpca
   left:
-    - text: "Reference"
-      href: reference/index.html
-    - text: "Vignettes"
-      href: articles/index.html
+  - text: Reference
+    href: reference/index.html
+  - text: Vignettes
+    href: articles/index.html
   right:
-    - icon: fa-github
-      href: https://github.com/bbuchsbaum/subpca
-
+  - icon: fa-github
+    href: https://github.com/bbuchsbaum/subpca
 reference:
-- title: "Main Functions"
-  desc: "Core functions for hierarchical PCA analysis"
+- title: Main Functions
+  desc: Core functions for hierarchical PCA analysis
   contents:
   - subpca
   - clusterpca
@@ -28,9 +27,8 @@ reference:
   - musubpca
   - metapca
   - time_contrast_clusterpca
-
-- title: "Time Contrast Methods"
-  desc: "Methods for time-contrast analysis"
+- title: Time Contrast Methods
+  desc: Methods for time-contrast analysis
   contents:
   - contrast_ratio
   - time_filters
@@ -38,9 +36,8 @@ reference:
   - plot.time_contrast_clusterpca
   - project.time_contrast_clusterpca
   - summary.time_contrast_clusterpca
-  
-- title: "Helper Functions"
-  desc: "Utility functions for analysis"
+- title: Helper Functions
+  desc: Utility functions for analysis
   contents:
   - background_info
   - cluster_centroid_distmat

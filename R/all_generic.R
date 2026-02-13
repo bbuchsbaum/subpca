@@ -44,5 +44,14 @@ multivarious::scores
 #' @rdname components
 multivarious::components
 
+#' @importFrom multivarious sdev
+#' @export
+#' @rdname sdev
+multivarious::sdev
+
+#' @importFrom multivarious shape
+#' @export
+#' @rdname shape
+multivarious::shape
 
 

@@ -68,7 +68,7 @@ metapca <- function(fits, ncomp=2, weights=NULL, combine=c("pca", "scaled","MFA"
 
   inner_block_indices <- b_ind(nc)
 
-  v <- do.call(rbind, lapply(1:length(fits), function(i) {
+  v <- do.call(rbind, lapply(seq_along(fits), function(i) {
       coef(fits[[i]]) %*% coef(pres)[inner_block_indices[[i]],]
   }))
 
@@ -112,16 +112,14 @@ project_block.metapca <- function(x, new_data, block, ...) {
 #' }
 #' @export
 partial_project.metapca <- function(x, new_data, colind, ...) {
-  x0 <- do.call(cbind, lapply(1:length(x$outer_block_indices), function(i) {
+  assert_that(ncol(new_data) == length(colind), msg="`colind` must have one entry per column in `new_data`")
+  x0 <- do.call(cbind, lapply(seq_along(x$outer_block_indices), function(i) {
     ind <- x$outer_block_indices[[i]]
-    keep <- colind %in% ind
-    if (sum(keep) > 0) {
-      # Get positions of colind that are in this block
-      idx <- which(colind %in% ind)
-      nd <- new_data[,idx,drop=FALSE]
-      # For individual block projection, use sequential indices 1:ncol(nd)
-      # not the original colind values
-      project(x$fits[[i]], nd)
+    keep <- which(colind %in% ind)
+    if (length(keep) > 0) {
+      nd <- new_data[, keep, drop = FALSE]
+      local_colind <- match(colind[keep], ind)
+      partial_project(x$fits[[i]], nd, colind = local_colind)
     } else {
       matrix(0, nrow(new_data), ncomp(x$fits[[i]]))
     }
@@ -135,7 +133,7 @@ partial_project.metapca <- function(x, new_data, colind, ...) {
 project.metapca <- function(x, new_data) {
   #browser()
   assert_that(ncol(new_data) == sum(sapply(x$fits, function(f) shape(f)[1])), msg="Number of columns in new_data must match total input dimensions of fits")
-  x0 <- do.call(cbind, lapply(1:length(x$outer_block_indices), function(i) {
+  x0 <- do.call(cbind, lapply(seq_along(x$outer_block_indices), function(i) {
     ind <- x$outer_block_indices[[i]]
     nd <- new_data[,ind,drop=FALSE]
     project(x$fits[[i]], nd)
@@ -179,10 +177,10 @@ reconstruct.metapca <- function(x, comp=seq_len(ncomp(x)), rowind=1:nrow(scores(
     # Get the block-specific portion of the reconstructed meta scores
     block_scores <- S_hat[, inner_idx, drop=FALSE]
     
-    # Manually reconstruct by matrix multiplication: scores %*% t(components)
-    # This gives us the reconstruction for just the specified rows
+    # Reconstruct in the fit's preprocessed space, then invert preprocessing.
     block_components <- components(x$fits[[i]])
-    block_recon <- block_scores %*% t(block_components)
+    block_recon_preproc <- block_scores %*% t(block_components)
+    block_recon <- multivarious::inverse_transform(x$fits[[i]]$preproc, block_recon_preproc)
     
     return(block_recon)
   })
@@ -196,6 +194,5 @@ reconstruct.metapca <- function(x, comp=seq_len(ncomp(x)), rowind=1:nrow(scores(
 components.metapca <- function(x, ...) {
   x$v
 }
-
 
 

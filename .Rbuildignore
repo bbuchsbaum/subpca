@@ -6,3 +6,6 @@
 ^docs$
 ^pkgdown$
 ^\.github$
+^\.claude$
+^\.omc$
+^vignettes/\.build\.timestamp$
