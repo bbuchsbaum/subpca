@@ -1,10 +1,21 @@
 ---
-title: "Cluster-wise PCA with clusterpca"
+title: Cluster-wise PCA with clusterpca
 output: rmarkdown::html_vignette
-vignette: >
+vignette: |
   %\VignetteIndexEntry{Cluster-wise PCA with clusterpca}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+params:
+  family: red
+css: albers.css
+resource_files:
+- albers.css
+- albers.js
+includes:
+  in_header: |-
+    <script src="albers.js"></script>
+    <script>document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('palette-red');});</script>
+
 ---
 
 ```{r, include = FALSE}
@@ -17,6 +28,7 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
+if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
 library(subpca)
 library(multivarious)
 library(Matrix)
@@ -192,9 +204,11 @@ Calculate residuals after removing cluster-specific components:
 
 ```{r residuals}
 # Calculate residuals using 2 components per cluster
-residuals_matrix <- residuals(result_col, 
-                             ncomp = 2,    # Use first 2 components per cluster
-                             xorig = X)
+residuals_matrix <- stats::residuals(
+  result_col,
+  ncomp = 2,    # Use first 2 components per cluster
+  xorig = X
+)
 
 # Reconstruction error
 reconstruction_error <- sum(residuals_matrix^2) / sum(X^2)
@@ -222,7 +236,7 @@ result_center <- clusterpca(X, clus,
 # Center and scale
 result_scale <- clusterpca(X, clus,
                           ccomp = 3,
-                          preproc = center() %>% scale(),
+                          preproc = standardize(),
                           colwise = TRUE)
 
 # Compare the results

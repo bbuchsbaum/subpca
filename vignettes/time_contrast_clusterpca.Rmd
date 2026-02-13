@@ -1,15 +1,27 @@
 ---
-title: "Distinctive Time-Domain Cluster PCA with Weighted Backgrounds"
+title: Distinctive Time-Domain Cluster PCA with Weighted Backgrounds
 output:
   html_vignette:
     df_print: paged
-vignette: >
-  %\VignetteIndexEntry{Time-contrast Cluster PCA}
+vignette: |
+  %\VignetteIndexEntry{Distinctive Time-Domain Cluster PCA with Weighted Backgrounds}
   %\VignetteEngine{knitr::rmarkdown}
-  \usepackage[utf8]{inputenc}
+  %\VignetteEncoding{UTF-8}
+params:
+  family: red
+css: albers.css
+resource_files:
+- albers.css
+- albers.js
+includes:
+  in_header: |-
+    <script src="albers.js"></script>
+    <script>document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('palette-red');});</script>
+
 ---
 
 ```{r setup, include=FALSE}
+if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 4)
 set.seed(1)
 ```

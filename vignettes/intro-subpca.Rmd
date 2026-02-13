@@ -1,10 +1,21 @@
 ---
-title: "Introduction to subpca"
+title: Introduction to subpca
 output: rmarkdown::html_vignette
-vignette: >
+vignette: |
   %\VignetteIndexEntry{Introduction to subpca}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+params:
+  family: red
+css: albers.css
+resource_files:
+- albers.css
+- albers.js
+includes:
+  in_header: |-
+    <script src="albers.js"></script>
+    <script>document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('palette-red');});</script>
+
 ---
 
 ```{r, include = FALSE}
@@ -17,6 +28,7 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
+if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
 library(subpca)
 library(multivarious)
 ```
@@ -120,7 +132,7 @@ The package integrates with `multivarious` for flexible preprocessing:
 result_scaled <- subpca(X, clus,
                        ncomp = 5,
                        ccomp = 3,
-                       preproc = center() %>% scale())
+                       preproc = standardize())
 
 # Just center without scaling
 result_centered <- subpca(X, clus,

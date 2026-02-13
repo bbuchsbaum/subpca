@@ -1,10 +1,21 @@
 ---
-title: "Multi-block Sub-PCA with musubpca"
+title: Multi-block Sub-PCA with musubpca
 output: rmarkdown::html_vignette
-vignette: >
+vignette: |
   %\VignetteIndexEntry{Multi-block Sub-PCA with musubpca}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+params:
+  family: red
+css: albers.css
+resource_files:
+- albers.css
+- albers.js
+includes:
+  in_header: |-
+    <script src="albers.js"></script>
+    <script>document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('palette-red');});</script>
+
 ---
 
 ```{r, include = FALSE}
@@ -19,6 +30,7 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
+if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
 library(subpca)
 library(multivarious)
 library(multidesign)
@@ -59,8 +71,8 @@ X_multi <- multiblock(list(block1, block2, block3))
 
 # Check structure
 cat("Multi-block dimensions:", dim(X_multi), "\n")
-cat("Number of blocks:", length(block_indices(X_multi)), "\n")
-cat("Block sizes:", sapply(block_indices(X_multi), length), "\n")
+cat("Number of blocks:", length(X_multi), "\n")
+cat("Block sizes:", sapply(seq_along(X_multi), function(i) length(block_indices(X_multi, i))), "\n")
 ```
 
 ## Basic musubpca Analysis
@@ -215,8 +227,8 @@ cat("Correlation:", round(cor(scores_weighted[, 1], scores_unweighted[, 1]), 3),
 The function also handles column-stacked multi-block structures:
 
 ```{r column-stacked}
-# Create column-stacked blocks (variables as rows, samples as columns)
-block1_T <- t(matrix(rnorm(50 * 30), 50, 30))  # 30 vars × 50 samples
+# Create column-stacked blocks (30 observations x 50 variables per block)
+block1_T <- t(matrix(rnorm(50 * 30), 50, 30))
 block2_T <- t(matrix(rnorm(50 * 30), 50, 30))
 block3_T <- t(matrix(rnorm(50 * 30), 50, 30))
 
@@ -225,8 +237,8 @@ X_cstacked <- multiblock(list(block1_T, block2_T, block3_T))
 # Check if column-stacked
 cat("Is column-stacked:", is_cstacked(X_cstacked), "\n")
 
-# Define clusters for the 30 variables
-clus_T <- rep(1:3, each = 10)
+# Define clusters for the 50 variables
+clus_T <- rep(1:5, each = 10)
 
 # Run musubpca on column-stacked data
 result_cstacked <- musubpca(X_cstacked, clus_T,
@@ -245,8 +257,8 @@ Apply preprocessing at different levels:
 ```{r preprocessing}
 # Create data with different scales across blocks
 X_multi_scaled <- X_multi
-X_multi_scaled[, 41:80] <- X_multi_scaled[, 41:80] * 10   # Scale up block 2
-X_multi_scaled[, 81:120] <- X_multi_scaled[, 81:120] * 0.1 # Scale down block 3
+X_multi_scaled[[2]] <- X_multi_scaled[[2]] * 10    # Scale up block 2
+X_multi_scaled[[3]] <- X_multi_scaled[[3]] * 0.1   # Scale down block 3
 
 # Without preprocessing - dominated by high-variance block
 result_no_prep <- musubpca(X_multi_scaled, clus,
@@ -267,7 +279,7 @@ result_scaled <- musubpca(X_multi_scaled, clus,
                          ncomp = 4,
                          inner_ccomp = 2,
                          ccomp = 2,
-                         preproc = center() %>% scale())
+                         preproc = standardize())
 
 # Compare variance captured by first component
 var_no_prep <- var(scores(result_no_prep)[, 1])

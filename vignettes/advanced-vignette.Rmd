@@ -1,10 +1,21 @@
 ---
-title: "Advanced Topics in subpca"
+title: Advanced Topics in subpca
 output: rmarkdown::html_vignette
-vignette: >
+vignette: |
   %\VignetteIndexEntry{Advanced Topics in subpca}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+params:
+  family: red
+css: albers.css
+resource_files:
+- albers.css
+- albers.js
+includes:
+  in_header: |-
+    <script src="albers.js"></script>
+    <script>document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('palette-red');});</script>
+
 ---
 
 ```{r, include = FALSE}
@@ -19,6 +30,7 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
+if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
 library(subpca)
 library(multivarious)
 library(Matrix)
@@ -165,6 +177,8 @@ for(i in 1:n_clusters) {
   var_idx <- ((i-1)*10 + 1):(i*10)
   if(i %% 5 == 0) {  # Every 5th cluster has signal
     X_sparse_base[, var_idx] <- rnorm(n_obs * 10)
+  } else {  # keep near-sparse but avoid zero-variance blocks
+    X_sparse_base[, var_idx] <- rnorm(n_obs * 10, sd = 1e-8)
   }
 }
 
@@ -200,15 +214,14 @@ robust_pca <- function(X, ncomp, preproc, ind = NULL) {
   X_robust <- sweep(X_robust, 2, mads, "/")
   
   # Standard PCA on robust-preprocessed data
-  multivarious::pca(X_robust, ncomp = ncomp, preproc = pass())
+  multivarious::pca(X_robust, ncomp = ncomp, preproc = fresh(pass()))
 }
 
 # Sparse PCA (simplified version)
 sparse_pca <- function(X, ncomp, preproc, ind = NULL) {
-  X_processed <- init_transform(preproc, X)
-  
   # Standard PCA first
-  pca_result <- multivarious::pca(X_processed, ncomp = ncomp, preproc = pass())
+  pca_result <- multivarious::pca(X, ncomp = ncomp, preproc = fresh(pass()))
+  pp <- pca_result[['preproc']]
   
   # Apply soft thresholding to loadings
   v <- components(pca_result)
@@ -217,13 +230,13 @@ sparse_pca <- function(X, ncomp, preproc, ind = NULL) {
   
   # Recreate bi_projector with sparse loadings
   # Note: This is simplified - real sparse PCA is more complex
-  s <- X_processed %*% v
+  s <- X %*% v
   
   bi_projector(
     v = v,
     s = s,
     sdev = apply(s, 2, sd),
-    preproc = preproc,
+    preproc = pp,
     classes = "pca"
   )
 }
