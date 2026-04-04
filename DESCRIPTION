@@ -28,7 +28,7 @@ Imports:
     genpca,
     irlba,
     matrixStats,
-    neighborweights,
+    adjoin,
     stats
 Remotes: 
     bbuchsbaum/multivarious,
